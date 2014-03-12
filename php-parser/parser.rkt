@@ -149,40 +149,53 @@ BOOL_TRUE BOOL_FALSE))
 (define get-heredoc-token
   (lexer
    [(:: #\' (:+ (:or lower-letter upper-letter #\_ #\-)) #\' #\newline)
-    (string-append
-     lexeme
-     (read-until
-      (substring lexeme 1 (- (string-length lexeme) 2))
-      input-port))]
+    (begin0
+      (string-append
+       lexeme
+       (read-until
+        (substring lexeme 1 (- (string-length lexeme) 2))
+        input-port))
+      (let-values ([(line col offset) (port-next-location input-port)])
+        (set! end-pos (make-position offset line col))))]
    [(:: (:+ (:or lower-letter upper-letter #\_ #\-)) #\newline)
-    (string-append
-     lexeme
-     (read-until
-      (substring lexeme 0 (- (string-length lexeme) 1))
-      input-port))]))
+    (begin0
+      (string-append
+       lexeme
+       (read-until
+        (substring lexeme 0 (- (string-length lexeme) 1))
+        input-port))
+      (let-values ([(line col offset) (port-next-location input-port)])
+        (set! end-pos (make-position offset line col))))]))
+
+(define-syntax (read-token-until stx)
+  (syntax-case stx ()
+      [(_ token-name until)
+       #'(let ([desc (read-until until input-port)])
+           (let-values ([(line col offset) (port-next-location input-port)])
+             (set! end-pos (make-position offset line col)))
+           (token-name (string-append lexeme desc)))]))
+
+(define-lex-trans (ignore-case stx)
+  (syntax-case stx ()
+    [(_ re)
+     (let ([str (syntax-e #'re)])
+       (when (not (string? str))
+         (raise-syntax-error #f
+                             "all arguments must be strings"
+                             stx))
+       #`(concatenation #,@(map (lambda (c) #`(union #,(char-upcase c) #,(char-downcase c))) (string->list str))))]))
 
 (define php-lexer-with-keywords
   (lexer-src-pos
    [(:+ newline) (token-NEWLINES lexeme)]
    [(:+ blanks) (token-BLANKS lexeme)]
 
-   [(:or "//" "#") (let* ([str (read-until "\n" input-port)]
-			  [data (string-append lexeme str)])
-		     (set! end-pos (make-position (+ (string-length str)
-						     (position-offset start-pos)
-						     (string-length lexeme)) #f #f))
-		      (token-LINE_COMMENT data))]
-   ["/*" (let* ([str (read-until "*/" input-port)]
-		[data (string-append lexeme str)])
-	   (set! end-pos (make-position (+ (string-length str)
-					   (position-offset start-pos)
-					   2) #f #f))
-           (token-COMMENT data))]
+   [(:or "//" "#") (read-token-until token-LINE_COMMENT "\n")]
+   ["/*" (read-token-until token-COMMENT "*/")]
    ["/**" (let* ([comment (read-until "*/" input-port)]
 		 [data (string-append lexeme comment)])
-	    (set! end-pos (make-position (+ (string-length comment)
-					    (position-offset start-pos)
-					    3) #f #f))
+            (let-values ([(line col offset) (port-next-location input-port)])
+              (set! end-pos (make-position offset line col)))
 	     (if (not (usefull-doc-comment? input-port))
 		(token-COMMENT data)
 		(token-DOCUMENTATION data)))]
@@ -190,74 +203,73 @@ BOOL_TRUE BOOL_FALSE))
    ["<<<" (let ([str (get-heredoc-token input-port)])
 	    (token-HEREDOC (string-append "<<<" str)))]
 
-   ["new" 'NEW]
-   ["clone" 'CLONE]
-   ["exit" 'EXIT]
-   ["if" 'IF]
-   ["elseif" 'ELSEIF]
-   ["else" 'ELSE]
-   ["endif" 'ENDIF]
-   ["echo" 'ECHO]
-   ["do" 'DO]
-   ["while" 'WHILE]
-   ["endwhile" 'ENDWHILE]
-   ["for" 'FOR]
-   ["endfor" 'ENDFOR]
-   ["foreach" 'FOREACH]
-   ["endforeach" 'ENDFOREACH]
-   ["declare" 'DECLARE]
-   ["enddeclare" 'ENDDECLARE]
-   ["as" 'AS]
-   ["AS" 'AS]
-   ["switch" 'SWITCH]
-   ["endswitch" 'ENDSWITCH]
-   ["case" 'CASE]
-   ["default" 'DEFAULT]
-   ["break" 'BREAK]
-   ["continue" 'CONTINUE]
-   ["goto" 'GOTO]
-   ["function" 'FUNCTION]
-   ["const" 'CONST]
-   ["return" 'RETURN]
-   ["try" 'TRY]
-   ["catch" 'CATCH]
-   ["finally" 'FINALLY]
-   ["throw" 'THROW]
-   ["use" 'USE]
-   ["insteadof" 'INSTEADOF]
-   ["global" 'GLOBAL]
-   ["static" 'STATIC]
-   ["abstract" 'ABSTRACT]
-   ["final" 'FINAL]
-   ["private" 'PRIVATE]
-   ["protected" 'PROTECTED]
-   ["public" 'PUBLIC]
-   ["var" 'VAR]
-   ["unset" 'UNSET]
-   ["isset" 'ISSET]
-   ["empty" 'EMPTY]
-   ["class" 'CLASS]
-   ["trait" 'TRAIT]
-   ["interface" 'INTERFACE]
-   ["extends" 'EXTENDS]
-   ["include" 'INCLUDE]
-   ["include_once" 'INCLUDE_ONCE]
-   ["eval" 'EVAL]
-   ["require" 'REQUIRE]
-   ["require_once" 'REQUIRE_ONCE]
-   ["or" 'LOGICAL_OR]
-   ["xor" 'LOGICAL_XOR]
-   ["and" 'LOGICAL_AND]
-   ["print" 'PRINT]
-   ["yield" 'YIELD]
-   ["instanceof" 'INSTANCEOF]
-   ["implements" 'IMPLEMENTS]
-   ["list" 'LIST]
-   ["array" 'ARRAY]
-   ["callable" 'CALLABLE]
-   ["namespace" 'NAMESPACE]
-   ["true" 'BOOL_TRUE]
-   ["false" 'BOOL_FALSE]
+   [(ignore-case "new") 'NEW]
+   [(ignore-case "clone") 'CLONE]
+   [(ignore-case "exit") 'EXIT]
+   [(ignore-case "if") 'IF]
+   [(ignore-case "elseif") 'ELSEIF]
+   [(ignore-case "else") 'ELSE]
+   [(ignore-case "endif") 'ENDIF]
+   [(ignore-case "echo") 'ECHO]
+   [(ignore-case "do") 'DO]
+   [(ignore-case "while") 'WHILE]
+   [(ignore-case "endwhile") 'ENDWHILE]
+   [(ignore-case "for") 'FOR]
+   [(ignore-case "endfor") 'ENDFOR]
+   [(ignore-case "foreach") 'FOREACH]
+   [(ignore-case "endforeach") 'ENDFOREACH]
+   [(ignore-case "declare") 'DECLARE]
+   [(ignore-case "enddeclare") 'ENDDECLARE]
+   [(ignore-case "as") 'AS]
+   [(ignore-case "switch") 'SWITCH]
+   [(ignore-case "endswitch") 'ENDSWITCH]
+   [(ignore-case "case") 'CASE]
+   [(ignore-case "default") 'DEFAULT]
+   [(ignore-case "break") 'BREAK]
+   [(ignore-case "continue") 'CONTINUE]
+   [(ignore-case "goto") 'GOTO]
+   [(ignore-case "function") 'FUNCTION]
+   [(ignore-case "const") 'CONST]
+   [(ignore-case "return") 'RETURN]
+   [(ignore-case "try") 'TRY]
+   [(ignore-case "catch") 'CATCH]
+   [(ignore-case "finally") 'FINALLY]
+   [(ignore-case "throw") 'THROW]
+   [(ignore-case "use") 'USE]
+   [(ignore-case "insteadof") 'INSTEADOF]
+   [(ignore-case "global") 'GLOBAL]
+   [(ignore-case "static") 'STATIC]
+   [(ignore-case "abstract") 'ABSTRACT]
+   [(ignore-case "final") 'FINAL]
+   [(ignore-case "private") 'PRIVATE]
+   [(ignore-case "protected") 'PROTECTED]
+   [(ignore-case "public") 'PUBLIC]
+   [(ignore-case "var") 'VAR]
+   [(ignore-case "unset") 'UNSET]
+   [(ignore-case "isset") 'ISSET]
+   [(ignore-case "empty") 'EMPTY]
+   [(ignore-case "class") 'CLASS]
+   [(ignore-case "trait") 'TRAIT]
+   [(ignore-case "interface") 'INTERFACE]
+   [(ignore-case "extends") 'EXTENDS]
+   [(ignore-case "include") 'INCLUDE]
+   [(ignore-case "include_once") 'INCLUDE_ONCE]
+   [(ignore-case "eval") 'EVAL]
+   [(ignore-case "require") 'REQUIRE]
+   [(ignore-case "require_once") 'REQUIRE_ONCE]
+   [(ignore-case "or") 'LOGICAL_OR]
+   [(ignore-case "xor") 'LOGICAL_XOR]
+   [(ignore-case "and") 'LOGICAL_AND]
+   [(ignore-case "print") 'PRINT]
+   [(ignore-case "yield") 'YIELD]
+   [(ignore-case "instanceof") 'INSTANCEOF]
+   [(ignore-case "implements") 'IMPLEMENTS]
+   [(ignore-case "list") 'LIST]
+   [(ignore-case "array") 'ARRAY]
+   [(ignore-case "callable") 'CALLABLE]
+   [(ignore-case "namespace") 'NAMESPACE]
+   [(ignore-case "true") 'BOOL_TRUE]
+   [(ignore-case "false") 'BOOL_FALSE]
 
    ["+=" 'PLUS_EQUAL]
    ["-=" 'MINUS_EQUAL]
@@ -388,27 +400,15 @@ BOOL_TRUE BOOL_FALSE))
    [(:+ newline) (token-NEWLINES lexeme)]
    [(:+ blanks) (token-BLANKS lexeme)]
 
-   [(:or "//" "#") (let* ([str (read-until "\n" input-port)]
-			  [data (string-append lexeme str)])
-		     (set! end-pos (make-position (+ (string-length str)
-						     (position-offset start-pos)
-						     (string-length lexeme)) #f #f))
-                     (token-LINE_COMMENT data))]
-   ["/*" (let* ([str (read-until "*/" input-port)]
-		[data (string-append lexeme str)])
-	   (set! end-pos (make-position (+ (string-length str)
-					   (position-offset start-pos)
-					   2) #f #f))
-           (token-COMMENT data))]
+   [(:or "//" "#") (read-token-until token-LINE_COMMENT "\n")]
+   ["/*" (read-token-until token-COMMENT "*/")]
    ["/**" (let* ([comment (read-until "*/" input-port)]
 		 [data (string-append lexeme comment)])
-	    (set! end-pos (make-position (+ (string-length comment)
-					    (position-offset start-pos)
-					    3) #f #f))
+            (let-values ([(line col offset) (port-next-location input-port)])
+              (set! end-pos (make-position offset line col)))
 	     (if (not (usefull-doc-comment? input-port))
 		(token-COMMENT data)
 		(token-DOCUMENTATION data)))]
-
    ["<<<" (let ([str (get-heredoc-token input-port)])
 	    (token-HEREDOC (string-append "<<<" str)))]
 
@@ -679,10 +679,11 @@ BOOL_TRUE BOOL_FALSE))
       [(base_variable_with_function_calls) $1])
 
      (parenthesis_expr
-      [(OPAREN expr CPAREN) $2]
+      [(OPAREN r_variable CPAREN) $2]
+      [(OPAREN expr_without_new CPAREN) $2]
       [(OPAREN yield_expr CPAREN) $2])
 
-     (expr_without_variable
+     (expr_without_new
       [(parenthesis_expr) $1]
       [(scalar) $1]
       [(LIST OPAREN assignment_list CPAREN ASSIGN expr)
@@ -690,7 +691,6 @@ BOOL_TRUE BOOL_FALSE))
                (ListPattern $1-start-pos $4-end-pos $3) $6)]
       [(combined_scalar_offset) $1]
       [(combined_scalar) $1]
-      [(new_expr) $1]
       [(OPAREN new_expr CPAREN instance_call)
        (if (empty? $4)
            $2
@@ -724,6 +724,10 @@ BOOL_TRUE BOOL_FALSE))
       [(infix_expr) $1]
       [(postfix_expr) $1]
       [(cast_expr) $1])
+
+     (expr_without_variable
+      [(new_expr) $1]
+      [(expr_without_new) $1])
 
      (chaining_method_or_property
       [(chaining_method_or_property variable_property) (append $1 $2)]
@@ -766,9 +770,13 @@ BOOL_TRUE BOOL_FALSE))
        (EmptyExpr $1-start-pos $4-end-pos $3)]
       [(INCLUDE expr) (IncludeExpr $1-start-pos $2-end-pos $2)]
       [(INCLUDE_ONCE expr) (IncludeOnceExpr $1-start-pos $2-end-pos $2)]
+      [(INCLUDE OPAREN expr CPAREN) (IncludeExpr $1-start-pos $4-end-pos $3)]
+      [(INCLUDE_ONCE OPAREN expr CPAREN) (IncludeOnceExpr $1-start-pos $4-end-pos $3)]
       [(EVAL OPAREN expr CPAREN) (EvalExpr $1-start-pos $4-end-pos $3)]
       [(REQUIRE expr) (RequireExpr $1-start-pos $2-end-pos $2)]
-      [(REQUIRE_ONCE expr) (RequireOnceExpr $1-start-pos $2-end-pos $2)])
+      [(REQUIRE_ONCE expr) (RequireOnceExpr $1-start-pos $2-end-pos $2)]
+      [(REQUIRE OPAREN expr CPAREN) (RequireExpr $1-start-pos $4-end-pos $3)]
+      [(REQUIRE_ONCE OPAREN expr CPAREN) (RequireOnceExpr $1-start-pos $4-end-pos $3)])
 
      (isset_variables
       [(isset_variable) (list $1)]
@@ -1798,4 +1806,10 @@ BOOL_TRUE BOOL_FALSE))
   (let ([ast (parse-expr "new $this->house;")])
     (check-pred NewExpr? ast)
     (check-pred ObjectChain? (NewExpr-class ast))
-    (check-pred ObjectAccess? (second (ObjectChain-list (NewExpr-class ast))))))
+    (check-pred ObjectAccess? (second (ObjectChain-list (NewExpr-class ast)))))
+  
+  (let ([ast (parse-expr "(my_fun('arg1', 'arg2', 'arg3'));")])
+    (check-pred FunctionCall? ast))
+
+  (let ([ast (parse-expr "$a instanceOf \\Exception;")])
+    (check-pred InstanceOfExpr? ast)))
