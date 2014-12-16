@@ -3,9 +3,9 @@
 ;; Parse a plain php file.
 
 (require  "parser-utils.rkt"
-	  parser-tools/yacc
-	  parser-tools/lex
-	  (prefix-in : parser-tools/lex-sre))
+          parser-tools/yacc
+          parser-tools/lex
+          (prefix-in : parser-tools/lex-sre))
 
 (define (force-list sexpr)
   (if (list? sexpr)
@@ -16,93 +16,93 @@
   (require rackunit))
 
 (provide php-parse
-	 php-lexe
-	 useless-token?
-	 php-lexer
-	 php-parser
-	 php-expr-parser
-	 (struct-out Variable)
-	 (struct-out AddrVariable)
-	 (struct-out ArrayAccess)
-	 (struct-out BraceAccess)
-	 (struct-out BraceVariable)
-	 (struct-out IndirectionVariable)
-	 (struct-out ObjectChain)
-	 (struct-out Array)
-	 (struct-out LiteralArray)
-	 (struct-out InstanceOfExpr)
-	 (struct-out TestExpr)
-	 (struct-out PrintExpr)
-	 (struct-out AtExpr)
-	 (struct-out UnsetCast)
-	 (struct-out Binary)
-	 (struct-out Infix)
-	 (struct-out Postfix)
-	 (struct-out Unary)
-	 (struct-out Cast)
-	 (struct-out Assign)
-	 (struct-out Yield)
-	 (struct-out Exit)
-	 (struct-out Clone)
-	 (struct-out FunctionCallParameter)
-	 (struct-out FunctionCall)
-	 (struct-out ObjectAccess)
-	 (struct-out BraceNaming)
-	 (struct-out ClassName)
-	 (struct-out NewExpr)
-	 (struct-out ExprStmt)
-	 (struct-out BlockStmt)
-	 (struct-out EmptyStmt)
-	 (struct-out LabelStmt)
-	 (struct-out IfStmt)
-	 (struct-out WhileStmt)
-	 (struct-out DoWhileStmt)
-	 (struct-out BreakStmt)
-	 (struct-out ContinueStmt)
-	 (struct-out TryStmt)
-	 (struct-out FinallyStmt)
-	 (struct-out CatchStmt)
-	 (struct-out ThrowStmt)
-	 (struct-out ReturnStmt)
-	 (struct-out EchoStmt)
-	 (struct-out UnsetStmt)
-	 (struct-out NamespaceStmt)
-	 (struct-out NamespaceName)
-	 (struct-out UseDeclaration)
-	 (struct-out UseStmt)
-	 (struct-out FunctionDcl)
-	 (struct-out LambdaDcl)
-	 (struct-out MethodDcl)
-	 (struct-out ParameterDcl)
-	 (struct-out ClassDcl)
-	 (struct-out InterfaceDcl)
-	 (struct-out ConstClassDcl)
-	 (struct-out GotoStmt)
-	 (struct-out PropertyDcl)
-	 (struct-out ConstDcl)
-	 (struct-out DeclareStmt)
-	 (struct-out GlobalStmt)
-	 (struct-out StaticStmt)
-	 (struct-out IssetExpr)
-	 (struct-out IncludeExpr)
-	 (struct-out IncludeOnceExpr)
-	 (struct-out EmptyExpr)
-	 (struct-out EvalExpr)
-	 (struct-out RequireExpr)
-	 (struct-out RequireOnceExpr)
-	 (struct-out BackQuoteExpr)
-	 (struct-out ForLoop)
-	 (struct-out Switch)
-	 (struct-out ForEachLoop)
-	 (struct-out ListPattern)
-	 (struct-out TraitAlias)
-	 (struct-out TraitStmt)
-	 (struct-out ChainBrace)
-	 (struct-out TraitPrecedence)
-	 (struct-out ChainCall)
-	 (struct-out ChainArray)
-	 (struct-out ConstDcls)
-	 (struct-out ConstClassDcls))
+         php-lexe
+         useless-token?
+         php-lexer
+         php-parser
+         php-expr-parser
+         (struct-out Variable)
+         (struct-out AddrVariable)
+         (struct-out ArrayAccess)
+         (struct-out BraceAccess)
+         (struct-out BraceVariable)
+         (struct-out IndirectionVariable)
+         (struct-out ObjectChain)
+         (struct-out Array)
+         (struct-out LiteralArray)
+         (struct-out InstanceOfExpr)
+         (struct-out TestExpr)
+         (struct-out PrintExpr)
+         (struct-out AtExpr)
+         (struct-out UnsetCast)
+         (struct-out Binary)
+         (struct-out Infix)
+         (struct-out Postfix)
+         (struct-out Unary)
+         (struct-out Cast)
+         (struct-out Assign)
+         (struct-out Yield)
+         (struct-out Exit)
+         (struct-out Clone)
+         (struct-out FunctionCallParameter)
+         (struct-out FunctionCall)
+         (struct-out ObjectAccess)
+         (struct-out BraceNaming)
+         (struct-out ClassName)
+         (struct-out NewExpr)
+         (struct-out ExprStmt)
+         (struct-out BlockStmt)
+         (struct-out EmptyStmt)
+         (struct-out LabelStmt)
+         (struct-out IfStmt)
+         (struct-out WhileStmt)
+         (struct-out DoWhileStmt)
+         (struct-out BreakStmt)
+         (struct-out ContinueStmt)
+         (struct-out TryStmt)
+         (struct-out FinallyStmt)
+         (struct-out CatchStmt)
+         (struct-out ThrowStmt)
+         (struct-out ReturnStmt)
+         (struct-out EchoStmt)
+         (struct-out UnsetStmt)
+         (struct-out NamespaceStmt)
+         (struct-out NamespaceName)
+         (struct-out UseDeclaration)
+         (struct-out UseStmt)
+         (struct-out FunctionDcl)
+         (struct-out LambdaDcl)
+         (struct-out MethodDcl)
+         (struct-out ParameterDcl)
+         (struct-out ClassDcl)
+         (struct-out InterfaceDcl)
+         (struct-out ConstClassDcl)
+         (struct-out GotoStmt)
+         (struct-out PropertyDcl)
+         (struct-out ConstDcl)
+         (struct-out DeclareStmt)
+         (struct-out GlobalStmt)
+         (struct-out StaticStmt)
+         (struct-out IssetExpr)
+         (struct-out IncludeExpr)
+         (struct-out IncludeOnceExpr)
+         (struct-out EmptyExpr)
+         (struct-out EvalExpr)
+         (struct-out RequireExpr)
+         (struct-out RequireOnceExpr)
+         (struct-out BackQuoteExpr)
+         (struct-out ForLoop)
+         (struct-out Switch)
+         (struct-out ForEachLoop)
+         (struct-out ListPattern)
+         (struct-out TraitAlias)
+         (struct-out TraitStmt)
+         (struct-out ChainBrace)
+         (struct-out TraitPrecedence)
+         (struct-out ChainCall)
+         (struct-out ChainArray)
+         (struct-out ConstDcls)
+         (struct-out ConstClassDcls))
 
 
 (define-lex-abbrevs
@@ -112,12 +112,12 @@
  (newline #\newline)
  (digit (:/ "0" "9"))
  (symbol-regex (:: (:or lower-letter upper-letter #\_)
-		   (:* (:or lower-letter upper-letter #\_ digit)))))
+                   (:* (:or lower-letter upper-letter #\_ digit)))))
 
 (define-empty-tokens op-tokens
   (EOF OPAREN CPAREN OBRACE CBRACE OBRAKET CBRAKET INCLUDE INCLUDE_ONCE EVAL
 REQUIRE REQUIRE_ONCE LOGICAL_OR LOGICAL_XOR LOGICAL_AND PRINT YIELD PLUS_EQUAL
-MINUS_EQUAL MULT_EQUAL DIV_EQUAL CONCAT_EQUAL MOD_EQUAL AND_EQUAL OR_EQUAL
+MINUS_EQUAL MULT_EQUAL DIV_EQUAL CONCAT_EQUAL MOD_EQUAL AND_EQUAL OR_EQUAL EXPO_EQUAL
 XOR_EQUAL SL_EQUAL SR_EQUAL BOOLEAN_OR BOOLEAN_AND IS_EQUAL IS_NOT_EQUAL
 IS_IDENTICAL IS_NOT_IDENTICAL IS_SMALLER_OR_EQUAL IS_GREATER_OR_EQUAL SL SR
 INSTANCEOF INC DEC INT_CAST DOUBLE_CAST STRING_CAST ARRAY_CAST OBJECT_CAST
@@ -128,10 +128,11 @@ USE INSTEADOF GLOBAL STATIC ABSTRACT FINAL PRIVATE PROTECTED PUBLIC VAR UNSET
 ISSET EMPTY CLASS TRAIT INTERFACE EXTENDS IMPLEMENTS OBJECT_OPERATOR
 DOUBLE_ARROW LIST ARRAY CALLABLE CLASS_C TRAIT_C METHOD_C FUNC_C LINE FILE
 NAMESPACE NS_C DIR OPEN_TAG DOLLAR_OPEN_CURLY_BRACES DOLLAR OPEN_TAG_WITH_ECHO
-CLOSE_TAG CURLY_OPEN PAAMAYIM_NEKUDOTAYIM NS_SEPARATOR 
-SEMICOLON COLON NEG BAR HAT AMPERSTAND COMMA DOT PLUS MINUS DIV MULT MOD TILD AT
+CLOSE_TAG CURLY_OPEN PAAMAYIM_NEKUDOTAYIM NS_SEPARATOR
+SEMICOLON COLON NEG BAR HAT AMPERSTAND COMMA DOT PLUS MINUS DIV MULT MOD TILD AT EXPO
 QUESTION ASSIGN SMALLER GREATER LOW_PRIORITY_RULE HALT_COMPILER
-BOOL_TRUE BOOL_FALSE))
+BOOL_TRUE BOOL_FALSE
+ELLIPSIS))
 
 (define-tokens value-tokens
   (HEREDOC VARIABLE IDENT INTEGER FLOAT QUOTE_STRING D_QUOTE_STRING BACKQUOTE_STRING DOCUMENTATION LINE_COMMENT COMMENT BLANKS NEWLINES))
@@ -144,7 +145,7 @@ BOOL_TRUE BOOL_FALSE))
 
 (define (usefull-doc-comment? input-port)
   (regexp-match-peek doc-comment-regex
-		     input-port))
+                     input-port))
 
 (define get-heredoc-token
   (lexer
@@ -193,16 +194,17 @@ BOOL_TRUE BOOL_FALSE))
    [(:or "//" "#") (read-token-until token-LINE_COMMENT "\n")]
    ["/*" (read-token-until token-COMMENT "*/")]
    ["/**" (let* ([comment (read-until "*/" input-port)]
-		 [data (string-append lexeme comment)])
+                 [data (string-append lexeme comment)])
             (let-values ([(line col offset) (port-next-location input-port)])
               (set! end-pos (make-position offset line col)))
-	     (if (not (usefull-doc-comment? input-port))
-		(token-COMMENT data)
-		(token-DOCUMENTATION data)))]
+             (if (not (usefull-doc-comment? input-port))
+                (token-COMMENT data)
+                (token-DOCUMENTATION data)))]
 
    ["<<<" (let ([str (get-heredoc-token input-port)])
-	    (token-HEREDOC (string-append "<<<" str)))]
+            (token-HEREDOC (string-append "<<<" str)))]
 
+   ["..." 'ELLIPSIS]
    [(ignore-case "new") 'NEW]
    [(ignore-case "clone") 'CLONE]
    [(ignore-case "exit") 'EXIT]
@@ -273,6 +275,7 @@ BOOL_TRUE BOOL_FALSE))
 
    ["+=" 'PLUS_EQUAL]
    ["-=" 'MINUS_EQUAL]
+   ["**=" 'EXPO_EQUAL]
    ["*=" 'MULT_EQUAL]
    ["/=" 'DIV_EQUAL]
    [".=" 'CONCAT_EQUAL]
@@ -315,8 +318,8 @@ BOOL_TRUE BOOL_FALSE))
    ["(unset)" 'UNSET_CAST]
    ["__NAMESPACE__" 'NS_C]
    ["->" (begin
-	   (lexer-no-keyword #t)
-	   'OBJECT_OPERATOR)]
+           (lexer-no-keyword #t)
+           'OBJECT_OPERATOR)]
    ["=>" 'DOUBLE_ARROW]
    ["__CLASS__" 'CLASS_C]
    ["__TRAIT__" 'TRAIT_C]
@@ -336,12 +339,12 @@ BOOL_TRUE BOOL_FALSE))
    ["\\" 'NS_SEPARATOR]
 
    [#\' (let ([data (tokenize-string #\' input-port)])
-	  (token-QUOTE_STRING (string-append "'" data)))]
+          (token-QUOTE_STRING (string-append "'" data)))]
    [#\" (let ([data (tokenize-string #\" input-port)])
-	  (token-QUOTE_STRING (string-append "\"" data)))]
+          (token-QUOTE_STRING (string-append "\"" data)))]
 
    [#\` (let ([data (tokenize-string #\` input-port)])
-	  (token-BACKQUOTE_STRING (string-append "`" data)))]
+          (token-BACKQUOTE_STRING (string-append "`" data)))]
 
    [(:+ digit) (token-INTEGER (string->number lexeme))]
    [(:: (:+ digit) (:or #\e #\E) (:? (:or #\+ #\-)) (:+ digit))
@@ -373,6 +376,7 @@ BOOL_TRUE BOOL_FALSE))
    [#\. 'DOT]
    [#\- 'MINUS]
    [#\/ 'DIV]
+   ["**" 'EXPO]
    [#\* 'MULT]
    [#\% 'MOD]
    [#\~ 'TILD]
@@ -403,17 +407,18 @@ BOOL_TRUE BOOL_FALSE))
    [(:or "//" "#") (read-token-until token-LINE_COMMENT "\n")]
    ["/*" (read-token-until token-COMMENT "*/")]
    ["/**" (let* ([comment (read-until "*/" input-port)]
-		 [data (string-append lexeme comment)])
+                 [data (string-append lexeme comment)])
             (let-values ([(line col offset) (port-next-location input-port)])
               (set! end-pos (make-position offset line col)))
-	     (if (not (usefull-doc-comment? input-port))
-		(token-COMMENT data)
-		(token-DOCUMENTATION data)))]
+             (if (not (usefull-doc-comment? input-port))
+                (token-COMMENT data)
+                (token-DOCUMENTATION data)))]
    ["<<<" (let ([str (get-heredoc-token input-port)])
-	    (token-HEREDOC (string-append "<<<" str)))]
+            (token-HEREDOC (string-append "<<<" str)))]
 
    ["+=" 'PLUS_EQUAL]
    ["-=" 'MINUS_EQUAL]
+   ["**=" 'EXPO_EQUAL]
    ["*=" 'MULT_EQUAL]
    ["/=" 'DIV_EQUAL]
    [".=" 'CONCAT_EQUAL]
@@ -454,8 +459,8 @@ BOOL_TRUE BOOL_FALSE))
    ["(unset)" 'UNSET_CAST]
    ["__NAMESPACE__" 'NS_C]
    ["->" (begin
-	   (lexer-no-keyword #t)
-	   'OBJECT_OPERATOR)]
+           (lexer-no-keyword #t)
+           'OBJECT_OPERATOR)]
    ["=>" 'DOUBLE_ARROW]
 ;;   ["__CLASS__" 'CLASS_C] some people use $this->__CLASS__
    ["__TRAIT__" 'TRAIT_C]
@@ -477,10 +482,10 @@ BOOL_TRUE BOOL_FALSE))
    [#\' (let ([data (tokenize-string #\' input-port)])
           (token-QUOTE_STRING (string-append "'" data)))]
    [#\" (let ([data (tokenize-string #\" input-port)])
-	  (token-QUOTE_STRING (string-append "\"" data)))]
+          (token-QUOTE_STRING (string-append "\"" data)))]
 
    [#\` (let ([data (tokenize-string #\` input-port)])
-	  (token-BACKQUOTE_STRING (string-append "`" data)))]
+          (token-BACKQUOTE_STRING (string-append "`" data)))]
 
    [(:+ digit)
     (token-INTEGER (string->number lexeme))]
@@ -513,6 +518,7 @@ BOOL_TRUE BOOL_FALSE))
    [#\. 'DOT]
    [#\- 'MINUS]
    [#\/ 'DIV]
+   ["**" 'EXPO]
    [#\* 'MULT]
    [#\% 'MOD]
    [#\~ 'TILD]
@@ -536,8 +542,8 @@ BOOL_TRUE BOOL_FALSE))
 (define (php-lexer input-port)
   (if (lexer-no-keyword)
       (begin
-	(lexer-no-keyword #f)
-	(php-lexer-without-keywords input-port))
+        (lexer-no-keyword #f)
+        (php-lexer-without-keywords input-port))
       (php-lexer-with-keywords input-port)))
 
 ;; It didn't probably parse all php constructs.
@@ -565,7 +571,8 @@ BOOL_TRUE BOOL_FALSE))
      (right PRINT)
 
      (left ASSIGN PLUS_EQUAL MINUS_EQUAL MULT_EQUAL DIV_EQUAL
-           CONCAT_EQUAL MOD_EQUAL AND_EQUAL OR_EQUAL XOR_EQUAL SL_EQUAL SR_EQUAL)
+           CONCAT_EQUAL MOD_EQUAL AND_EQUAL OR_EQUAL XOR_EQUAL SL_EQUAL SR_EQUAL
+           EXPO_EQUAL)
 
      (left QUESTION COLON)
      (left BOOLEAN_OR)
@@ -585,6 +592,7 @@ BOOL_TRUE BOOL_FALSE))
      (right TILD INC DEC INT_CAST DOUBLE_CAST STRING_CAST ARRAY_CAST
             OBJECT_CAST BOOL_CAST UNSET_CAST BIN_CAST)
      (right AT)
+     (right EXPO)
      (right OBRAKET)
      (nonassoc NEW CLONE)
      (left ELSEIF)
@@ -620,6 +628,7 @@ BOOL_TRUE BOOL_FALSE))
       [(expr PLUS expr) (prec INC) (Binary $1-start-pos $3-end-pos 'PLUS $1 $3)]
       [(expr MINUS expr) (prec DEC) (Binary $1-start-pos $3-end-pos 'MINUS $1 $3)]
       [(expr MULT expr) (Binary $1-start-pos $3-end-pos 'MULT $1 $3)]
+      [(expr EXPO expr) (Binary $1-start-pos $3-end-pos 'EXPO $1 $3)]
       [(expr DIV expr) (Binary $1-start-pos $3-end-pos 'DIV $1 $3)]
       [(expr MOD expr) (Binary $1-start-pos $3-end-pos 'MOD $1 $3)]
       [(expr DOT expr) (Binary $1-start-pos $3-end-pos 'DOT $1 $3)])
@@ -652,6 +661,7 @@ BOOL_TRUE BOOL_FALSE))
       [(variable PLUS_EQUAL   expr) (Assign $1-start-pos $3-end-pos 'PLUS_EQUAL $1 $3)]
       [(variable MINUS_EQUAL  expr) (Assign $1-start-pos $3-end-pos 'MINUS_EQUAL $1 $3)]
       [(variable MULT_EQUAL   expr) (Assign $1-start-pos $3-end-pos 'MULT_EQUAL $1 $3)]
+      [(variable EXPO_EQUAL   expr) (Assign $1-start-pos $3-end-pos 'EXPO_EQUAL $1 $3)]
       [(variable DIV_EQUAL    expr) (Assign $1-start-pos $3-end-pos 'DIV_EQUAL $1 $3)]
       [(variable MOD_EQUAL    expr) (Assign $1-start-pos $3-end-pos 'MOD_EQUAL $1 $3)]
       [(variable AND_EQUAL    expr) (Assign $1-start-pos $3-end-pos 'AND_EQUAL $1 $3)]
@@ -664,7 +674,7 @@ BOOL_TRUE BOOL_FALSE))
 
      (cast_expr
       [(BOOL_CAST   expr) (Cast $1-start-pos $2-end-pos 'BOOL_CAST $2)]
-      [(INT_CAST	   expr) (Cast $1-start-pos $2-end-pos 'INT_CAST $2)]
+      [(INT_CAST           expr) (Cast $1-start-pos $2-end-pos 'INT_CAST $2)]
       [(DOUBLE_CAST expr) (Cast $1-start-pos $2-end-pos 'DOUBLE_CAST $2)]
       [(STRING_CAST expr) (Cast $1-start-pos $2-end-pos 'STRING_CAST $2)]
       [(ARRAY_CAST  expr) (Cast $1-start-pos $2-end-pos 'ARRAY_CAST $2)]
@@ -707,6 +717,7 @@ BOOL_TRUE BOOL_FALSE))
       [(BACKQUOTE_STRING) (BackQuoteExpr $1-start-pos $1-end-pos $1)]
       [(lambda_expr) $1]
       [(YIELD) 'YIELD]
+      [(yield_expr) $1]
       [(internal_functions_in_yacc) $1]
       [(STATIC lambda_expr)
        (LambdaDcl $1-start-pos $2-end-pos
@@ -976,29 +987,27 @@ BOOL_TRUE BOOL_FALSE))
 
      (function_call_parameter_list
       [(OPAREN CPAREN) '()]
-      ;;(FunctionCallParameter $1-start-pos $2-end-pos null)]
-      [(OPAREN non_empty_function_call_parameter_list CPAREN) $2]
-      [(OPAREN yield_expr CPAREN)
-       (list (FunctionCallParameter $1-start-pos $3-end-pos $2))])
-     ;;(FunctionCallParameter $1-start-pos $3-end-pos $2)])
+      [(OPAREN non_empty_function_call_parameter_list CPAREN) $2])
 
      (w_variable
       [(variable) $1])
 
-     (non_empty_function_call_parameter_list
-      [(expr_without_variable) (list (FunctionCallParameter $1-start-pos $1-end-pos $1))]
-      [(variable) (list (FunctionCallParameter $1-start-pos $1-end-pos $1))]
+     (function_call_parameter
+      [(expr_without_variable) (FunctionCallParameter $1-start-pos $1-end-pos $1 #f)]
+      [(variable) (FunctionCallParameter $1-start-pos $1-end-pos $1 #f)]
       [(AMPERSTAND w_variable)
-       (list (FunctionCallParameter $1-start-pos $2-end-pos (AddrVariable $1-start-pos $2-end-pos $2)))]
-      [(non_empty_function_call_parameter_list COMMA expr_without_variable)
-       (append $1 (list (FunctionCallParameter $3-start-pos $3-end-pos $3)))]
-      [(non_empty_function_call_parameter_list COMMA variable)
-       (append $1 (list (FunctionCallParameter $3-start-pos $3-end-pos $3)))]
-      [(non_empty_function_call_parameter_list COMMA AMPERSTAND w_variable)
-       (append $1 (list (FunctionCallParameter $3-start-pos $4-end-pos
-					       (AddrVariable
-						$3-start-pos $4-end-pos $4))))])
+       (FunctionCallParameter $1-start-pos $2-end-pos (AddrVariable $1-start-pos $2-end-pos $2) #f)])
 
+     (non_empty_function_call_parameter_list
+      [(function_call_parameter) (list $1)]
+      [(non_empty_function_call_parameter_list COMMA function_call_parameter)
+       (append $1 (list $3))]
+      [(non_empty_function_call_parameter_list COMMA ELLIPSIS function_call_parameter)
+       (append $1
+               (list (FunctionCallParameter (Position-start $4)
+                                            (Position-end $4)
+                                            (FunctionCallParameter-expr $4)
+                                            #t)))])
 
      (base_variable
       [(reference_variable) $1]
@@ -1026,10 +1035,8 @@ BOOL_TRUE BOOL_FALSE))
       [(DOLLAR OBRACE expr CBRACE) (BraceVariable $1-start-pos $4-end-pos $3)])
 
      (yield_expr
-      [(YIELD expr_without_variable) (Yield $1-start-pos $2-end-pos $2 null)]
-      [(YIELD variable) (Yield $1-start-pos $2-end-pos $2 null)]
-      [(YIELD expr DOUBLE_ARROW expr_without_variable) (Yield $1-start-pos $4-end-pos $2 $4)]
-      [(YIELD expr DOUBLE_ARROW variable) (Yield $1-start-pos $4-end-pos  $2 $4)])
+      [(YIELD expr) (Yield $1-start-pos $2-end-pos $2 null)]
+      [(YIELD expr DOUBLE_ARROW expr) (Yield $1-start-pos $4-end-pos  $2 $4)])
 
 
      (program
@@ -1052,7 +1059,9 @@ BOOL_TRUE BOOL_FALSE))
        (NamespaceStmt $1-start-pos $4-end-pos $2 $4)]
       [(NAMESPACE OBRACE top_statement_list CBRACE)
        (NamespaceStmt $1-start-pos $4-end-pos null $3)]
-      [(USE use_declarations SEMICOLON) (UseStmt $1-start-pos $3-end-pos $2)]
+      [(USE use_declarations SEMICOLON) (UseStmt $1-start-pos $3-end-pos $2 'class)]
+      [(USE FUNCTION use_declarations SEMICOLON) (UseStmt $1-start-pos $4-end-pos $3 'function)]
+      [(USE CONST use_declarations SEMICOLON) (UseStmt $1-start-pos $4-end-pos $3 'const)]
       [(constant_declaration SEMICOLON) $1])
 
      (function_declaration_statement
@@ -1076,14 +1085,19 @@ BOOL_TRUE BOOL_FALSE))
       [(non_empty_parameter_list) $1]
       [() '()])
 
+     (is_variadic
+      [(ELLIPSIS) #t]
+      [() #f])
+
+     (is_reference
+      [(AMPERSTAND) #t]
+      [() #f])
 
      (parameter_dcl
-      [(optional_class_type VARIABLE) (ParameterDcl $1-start-pos $2-end-pos $1 $2 false null)]
-      [(optional_class_type AMPERSTAND VARIABLE) (ParameterDcl $1-start-pos $3-end-pos $1 $3 true null)]
-      [(optional_class_type AMPERSTAND VARIABLE ASSIGN static_scalar)
-       (ParameterDcl $1-start-pos $5-end-pos $1 $3 true $5)]
-      [(optional_class_type VARIABLE ASSIGN static_scalar)
-       (ParameterDcl $1-start-pos $4-end-pos $1 $2 false $4)])
+      [(optional_class_type is_reference is_variadic VARIABLE)
+       (ParameterDcl $1-start-pos $2-end-pos $1 $4 $2 $3 null)]
+      [(optional_class_type is_reference is_variadic VARIABLE ASSIGN static_scalar)
+       (ParameterDcl $1-start-pos $5-end-pos $1 $4 $2 $3 $6)])
 
      (non_empty_parameter_list
       [(parameter_dcl) (list $1)]
@@ -1097,12 +1111,12 @@ BOOL_TRUE BOOL_FALSE))
       [(fully_qualified_class_name) $1])
 
      (constant_declaration
-      [(constant_declaration COMMA IDENT ASSIGN static_scalar)
+      [(constant_declaration COMMA IDENT ASSIGN expr)
        (ConstDcls $1-start-pos $5-end-pos
-		  (append $1 (list (ConstDcl $3-start-pos $5-end-pos $3 $5))))]
+                  (append $1 (list (ConstDcl $3-start-pos $5-end-pos $3 $5))))]
       [(empty_documentation CONST IDENT ASSIGN static_scalar)
        (ConstDcls $1-start-pos $5-end-pos
-		  (list (ConstDcl $1-start-pos $5-end-pos $1 $3 $5)))])
+                  (list (ConstDcl $1-start-pos $5-end-pos $1 $3 $5)))])
 
      (use_declarations
       [(use_declarations COMMA use_declaration) (append $1 (list $3))]
@@ -1266,10 +1280,10 @@ BOOL_TRUE BOOL_FALSE))
       [(FINAL) 'FINAL])
 
      (class_constant_declaration
-      [(class_constant_declaration COMMA IDENT ASSIGN static_scalar)
+      [(class_constant_declaration COMMA IDENT ASSIGN expr)
        (ConstClassDcls $1-start-pos $5-end-pos
                        (append $1 (list (ConstClassDcl $1-start-pos $5-end-pos $3 $5))))]
-      [(empty_documentation CONST IDENT ASSIGN static_scalar) 
+      [(empty_documentation CONST IDENT ASSIGN static_scalar)
        (ConstClassDcls $1-start-pos $5-end-pos
                        (list (ConstClassDcl $1-start-pos $5-end-pos $1 $3 $5)))])
 
@@ -1519,7 +1533,7 @@ BOOL_TRUE BOOL_FALSE))
       ;;conflicts with scalar rule
       )
 
-     
+
      (class_name
       [(STATIC) 'STATIC]
       [(fully_qualified_class_name) $1])
@@ -1543,10 +1557,10 @@ BOOL_TRUE BOOL_FALSE))
 
 
 (ast-struct NamespaceName Position (global name)
-	    #:transparent)
+            #:transparent)
 
 (ast-struct ClassName Position (class property) #:transparent)
-(ast-struct FunctionCallParameter Position (expr) #:transparent)
+(ast-struct FunctionCallParameter Position (expr unpack) #:transparent)
 
 ;; ---- VARIABLES ----
 (ast-struct AddrVariable Position (expr) #:transparent)
@@ -1588,14 +1602,14 @@ BOOL_TRUE BOOL_FALSE))
 ;; ---- DEDICATED EXPRS ----
 (ast-struct UseDeclaration Position (name alias) #:transparent)
 (struct ParameterDcl Position (type name reference default)
-	#:transparent
-	#:property prop:sub-ast
-	(lambda (x)
-	  (list
-	   (ParameterDcl-type x)
-	   (ParameterDcl-name x)
-	   (ParameterDcl-reference x)
-	   (ParameterDcl-default x))))
+        #:transparent
+        #:property prop:sub-ast
+        (lambda (x)
+          (list
+           (ParameterDcl-type x)
+           (ParameterDcl-name x)
+           (ParameterDcl-reference x)
+           (ParameterDcl-default x))))
 
 (ast-struct DeclareStmt Position (list stmt) #:transparent)
 (ast-struct ListPattern Position (pattern) #:transparent)
@@ -1606,7 +1620,7 @@ BOOL_TRUE BOOL_FALSE))
 (ast-struct ForLoop Position (init test step statement) #:transparent)
 (ast-struct Switch Position (test cases) #:transparent)
 (ast-struct ForEachLoop Position (variable loop-variable option stmt) #:transparent)
-(ast-struct UseStmt Position (uses) #:transparent)
+(ast-struct UseStmt Position (uses type) #:transparent)
 (ast-struct GlobalStmt Position (list) #:transparent)
 (ast-struct StaticStmt Position (list) #:transparent)
 (ast-struct IfStmt Position (test then elseifs else) #:transparent)
@@ -1630,34 +1644,34 @@ BOOL_TRUE BOOL_FALSE))
 (ast-struct EmptyExpr Position (expr) #:transparent)
 (ast-struct EvalExpr Position (expr) #:transparent)
 
-(struct FunctionDcl Position 
-	(documentation name args body reference)
-	#:transparent
-	#:property prop:sub-ast
-	(lambda (x)
-	  (list
-	   (FunctionDcl-name x)
-	   (FunctionDcl-args x)
-	   (FunctionDcl-body x)
-	   (FunctionDcl-reference x))))
+(struct FunctionDcl Position
+        (documentation name args body reference)
+        #:transparent
+        #:property prop:sub-ast
+        (lambda (x)
+          (list
+           (FunctionDcl-name x)
+           (FunctionDcl-args x)
+           (FunctionDcl-body x)
+           (FunctionDcl-reference x))))
 
-(struct LambdaDcl Position 
-	(documentation static args lexical body reference)
-	#:property prop:sub-ast
-	(lambda (x)
-	  (list 
-	   (LambdaDcl-static x)
-	   (LambdaDcl-args x)
-	   (LambdaDcl-lexical x)
-	   (LambdaDcl-body x)
-	   (LambdaDcl-reference x)))
-	#:transparent)
+(struct LambdaDcl Position
+        (documentation static args lexical body reference)
+        #:property prop:sub-ast
+        (lambda (x)
+          (list
+           (LambdaDcl-static x)
+           (LambdaDcl-args x)
+           (LambdaDcl-lexical x)
+           (LambdaDcl-body x)
+           (LambdaDcl-reference x)))
+        #:transparent)
 
-(struct ConstClassDcl Position (documentation name value) 
-	#:transparent
-	#:property prop:sub-ast
-	(lambda (x)
-	  (list (ConstClassDcl-name x) (ConstClassDcl-value x))))
+(struct ConstClassDcl Position (documentation name value)
+        #:transparent
+        #:property prop:sub-ast
+        (lambda (x)
+          (list (ConstClassDcl-name x) (ConstClassDcl-value x))))
 
 (ast-struct RequireExpr Position (expr) #:transparent)
 (ast-struct RequireOnceExpr Position (expr) #:transparent)
@@ -1670,66 +1684,66 @@ BOOL_TRUE BOOL_FALSE))
 (ast-struct NamespaceStmt Position (name body) #:transparent)
 
 (struct MethodDcl Position
-	(documentation modifiers name args body reference)
-	#:transparent
-	#:property prop:sub-ast
-	(lambda (x)
-	  (list 
-	   (MethodDcl-modifiers x)
-	   (MethodDcl-name x)
-	   (MethodDcl-args x)
-	   (MethodDcl-body x)
-	   (MethodDcl-reference x))))
-	
+        (documentation modifiers name args body reference)
+        #:transparent
+        #:property prop:sub-ast
+        (lambda (x)
+          (list
+           (MethodDcl-modifiers x)
+           (MethodDcl-name x)
+           (MethodDcl-args x)
+           (MethodDcl-body x)
+           (MethodDcl-reference x))))
+
 (struct ClassDcl Position
-	(documentation modifiers name extend implements body)
-	#:transparent
-	#:property prop:sub-ast
-	(lambda (x)
-	  (list
-	   (ClassDcl-modifiers x)
-	   (ClassDcl-name x)
-	   (ClassDcl-extend x)
-	   (ClassDcl-implements x)
-	   (ClassDcl-body x))))
+        (documentation modifiers name extend implements body)
+        #:transparent
+        #:property prop:sub-ast
+        (lambda (x)
+          (list
+           (ClassDcl-modifiers x)
+           (ClassDcl-name x)
+           (ClassDcl-extend x)
+           (ClassDcl-implements x)
+           (ClassDcl-body x))))
 
 (struct InterfaceDcl Position
-	(documentation name extends body)
-	#:transparent
-	#:property prop:sub-ast
-	(lambda (x)
-	  (list
-	   (InterfaceDcl-name x)
-	   (InterfaceDcl-extends x)
-	   (InterfaceDcl-body x))))
-	   
+        (documentation name extends body)
+        #:transparent
+        #:property prop:sub-ast
+        (lambda (x)
+          (list
+           (InterfaceDcl-name x)
+           (InterfaceDcl-extends x)
+           (InterfaceDcl-body x))))
+
 (struct PropertyDcl Position
-	(documentation modifiers variables) 
-	#:transparent
-	#:property prop:sub-ast
-	(lambda (x)
-	  (list (PropertyDcl-modifiers x) (PropertyDcl-variables x))))
+        (documentation modifiers variables)
+        #:transparent
+        #:property prop:sub-ast
+        (lambda (x)
+          (list (PropertyDcl-modifiers x) (PropertyDcl-variables x))))
 
 (struct ConstDcl Position
-	(documentation name value) 
-	#:transparent
-	#:property prop:sub-ast
-	(lambda (x)
-	  (list (ConstDcl-name x) (ConstDcl-value x))))
+        (documentation name value)
+        #:transparent
+        #:property prop:sub-ast
+        (lambda (x)
+          (list (ConstDcl-name x) (ConstDcl-value x))))
 
 (struct ConstDcls Position
-	(list)
-	#:transparent
-	#:property prop:sub-ast
-	(lambda (x) 
-	  (ConstDcls-list x)))
+        (list)
+        #:transparent
+        #:property prop:sub-ast
+        (lambda (x)
+          (ConstDcls-list x)))
 
 (struct ConstClassDcls Position
-	(list)
-	#:transparent
-	#:property prop:sub-ast
-	(lambda (x) 
-	  (ConstClassDcls-list x)))
+        (list)
+        #:transparent
+        #:property prop:sub-ast
+        (lambda (x)
+          (ConstClassDcls-list x)))
 
 (define (useless-token? token)
   (define name (token-name (position-token-token token)))
@@ -1744,22 +1758,22 @@ BOOL_TRUE BOOL_FALSE))
    (reverse
     (let loop ([tokens '()])
       (let ([tok (php-lexer input-port)])
-	(if (equal? 'EOF (token-name (position-token-token tok)))
-	    (cons tok tokens)
-	    (loop (cons tok tokens)))))))
+        (if (equal? 'EOF (token-name (position-token-token tok)))
+            (cons tok tokens)
+            (loop (cons tok tokens)))))))
 
 (define (php-parse input-port)
   (when (not (port-counts-lines? input-port))
     (port-count-lines! input-port))
   (define (token-loop)
     (let* ([tok (php-lexer input-port)]
-	   [name (token-name (position-token-token tok))])
+           [name (token-name (position-token-token tok))])
       (if (or (equal? 'LINE_COMMENT name)
-	      (equal? 'BLANKS name)
-	      (equal? 'NEWLINES name)
-	      (equal? 'COMMENT name))
-	  (token-loop)
-	  tok)))
+              (equal? 'BLANKS name)
+              (equal? 'NEWLINES name)
+              (equal? 'COMMENT name))
+          (token-loop)
+          tok)))
   (php-parser token-loop))
 
 
@@ -1774,10 +1788,10 @@ BOOL_TRUE BOOL_FALSE))
 (module+ test
   (define parse-string (compose php-parse open-input-string))
   (define parse-expr (compose ExprStmt-expr
-			      first
-			      parse-string 
-			      (curry string-append "<?php ")))
-  
+                              first
+                              parse-string
+                              (curry string-append "<?php ")))
+
   (let ([ast (php-parse (open-input-string "<?php $this->elephant[32](1,2,3)->jack;"))])
     (check-pred ExprStmt? (first ast))
     (check-pred ObjectChain? (ExprStmt-expr (first ast)))
@@ -1807,9 +1821,15 @@ BOOL_TRUE BOOL_FALSE))
     (check-pred NewExpr? ast)
     (check-pred ObjectChain? (NewExpr-class ast))
     (check-pred ObjectAccess? (second (ObjectChain-list (NewExpr-class ast)))))
-  
   (let ([ast (parse-expr "(my_fun('arg1', 'arg2', 'arg3'));")])
     (check-pred FunctionCall? ast))
+
+  (let ([ast (parse-expr "someFun($a, ...$b);")])
+    (check-true (FunctionCallParameter-unpack (second (FunctionCall-args ast))))
+    (check-false (FunctionCallParameter-unpack (first (FunctionCall-args ast)))))
+
+  (let ([ast (parse-expr "1**2;")])
+    (check-equal? (Binary-op ast) 'EXPO))
 
   (let ([ast (parse-expr "$a instanceOf \\Exception;")])
     (check-pred InstanceOfExpr? ast)))
