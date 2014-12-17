@@ -1187,12 +1187,9 @@ ELLIPSIS))
        (PropertyDcl $2-start-pos $3-end-pos $1 $2 $3)]
       [(class_constant_declaration SEMICOLON) $1]
       [(trait_use_statement) $1]
-      [(empty_documentation method_modifiers FUNCTION IDENT OPAREN
+      [(empty_documentation method_modifiers FUNCTION is_reference IDENT OPAREN
                             parameter_list CPAREN method_body)
-       (MethodDcl $2-start-pos $8-end-pos $1 $2 $4 $6 $8 false)]
-      [(empty_documentation method_modifiers FUNCTION AMPERSTAND IDENT OPAREN
-                            parameter_list CPAREN method_body)
-       (MethodDcl $2-start-pos $9-end-pos $1 $2 $5 $7 $9 false)])
+       (MethodDcl $2-start-pos $8-end-pos $1 $2 $5 $7 $9 $4)])
 
      (trait_use_statement
       [(USE trait_list trait_adaptations)
@@ -1601,7 +1598,7 @@ ELLIPSIS))
 
 ;; ---- DEDICATED EXPRS ----
 (ast-struct UseDeclaration Position (name alias) #:transparent)
-(struct ParameterDcl Position (type name reference default)
+(struct ParameterDcl Position (type name reference variadic default)
         #:transparent
         #:property prop:sub-ast
         (lambda (x)
@@ -1609,6 +1606,7 @@ ELLIPSIS))
            (ParameterDcl-type x)
            (ParameterDcl-name x)
            (ParameterDcl-reference x)
+           (ParameterDcl-variadic x)
            (ParameterDcl-default x))))
 
 (ast-struct DeclareStmt Position (list stmt) #:transparent)
@@ -1792,7 +1790,7 @@ ELLIPSIS))
                               parse-string
                               (curry string-append "<?php ")))
 
-  (let ([ast (php-parse (open-input-string "<?php $this->elephant[32](1,2,3)->jack;"))])
+  (let ([ast (parse-string "<?php $this->elephant[32](1,2,3)->jack;")])
     (check-pred ExprStmt? (first ast))
     (check-pred ObjectChain? (ExprStmt-expr (first ast)))
     (define obj-lst (ObjectChain-list (ExprStmt-expr (first ast))))
@@ -1802,7 +1800,7 @@ ELLIPSIS))
     (check-pred ChainCall? (fourth obj-lst))
     (check-pred ObjectAccess? (last obj-lst)))
 
-  (let ([ast (php-parse (open-input-string "<?php (new House(1,2,3))[32]->green;"))])
+  (let ([ast (parse-string "<?php (new House(1,2,3))[32]->green;")])
     (check-pred ExprStmt? (first ast))
     (check-pred ObjectChain? (ExprStmt-expr (first ast)))
     (let ([obj-lst (ObjectChain-list (ExprStmt-expr (first ast)))])
@@ -1810,12 +1808,20 @@ ELLIPSIS))
       (check-pred ChainArray? (second obj-lst))
       (check-pred ObjectAccess? (third obj-lst))))
 
-  (let ([ast (php-parse (open-input-string "<?php (new House(1,2,3))->green;"))])
+  (let ([ast (parse-string "<?php (new House(1,2,3))->green;")])
     (check-pred ExprStmt? (first ast))
     (check-pred ObjectChain? (ExprStmt-expr (first ast)))
     (let ([obj-lst (ObjectChain-list (ExprStmt-expr (first ast)))])
       (check-pred NewExpr? (first obj-lst))
       (check-pred ObjectAccess? (second obj-lst))))
+
+  (let ([ast (first (parse-string "<?php function maFun($a, Abc $b, array $c = array()) { return 12; }"))])
+    (check-pred FunctionDcl? ast)
+    (match-let ([(list a b c) (FunctionDcl-args ast)])
+      (check-equal? (ParameterDcl-name a) "$a")
+      (check-equal? (NamespaceName-name (ParameterDcl-type b)) '("Abc"))
+      (check-pred Array? (ParameterDcl-default c))
+      (check-equal? (Array-exprs (ParameterDcl-default c)) empty)))
 
   (let ([ast (parse-expr "new $this->house;")])
     (check-pred NewExpr? ast)
