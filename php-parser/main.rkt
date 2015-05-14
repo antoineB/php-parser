@@ -1,10 +1,12 @@
 #lang racket
 
 (require "parser.rkt"
-	 "parser-utils.rkt")
+         "ast.rkt"
+         "parser-utils.rkt")
 
 (provide
  (all-from-out "parser.rkt")
+ (all-from-out "ast.rkt")
  Position
  Position-start
  Position-end

@@ -3,6 +3,7 @@
 ;; Parse a plain php file.
 
 (require  "parser-utils.rkt"
+          "ast.rkt"
           parser-tools/yacc
           parser-tools/lex
           (prefix-in : parser-tools/lex-sre))
@@ -20,89 +21,7 @@
          useless-token?
          php-lexer
          php-parser
-         php-expr-parser
-         (struct-out Variable)
-         (struct-out AddrVariable)
-         (struct-out ArrayAccess)
-         (struct-out BraceAccess)
-         (struct-out BraceVariable)
-         (struct-out IndirectionVariable)
-         (struct-out ObjectChain)
-         (struct-out Array)
-         (struct-out LiteralArray)
-         (struct-out InstanceOfExpr)
-         (struct-out TestExpr)
-         (struct-out PrintExpr)
-         (struct-out AtExpr)
-         (struct-out UnsetCast)
-         (struct-out Binary)
-         (struct-out Infix)
-         (struct-out Postfix)
-         (struct-out Unary)
-         (struct-out Cast)
-         (struct-out Assign)
-         (struct-out Yield)
-         (struct-out Exit)
-         (struct-out Clone)
-         (struct-out FunctionCallParameter)
-         (struct-out FunctionCall)
-         (struct-out ObjectAccess)
-         (struct-out BraceNaming)
-         (struct-out ClassName)
-         (struct-out NewExpr)
-         (struct-out ExprStmt)
-         (struct-out BlockStmt)
-         (struct-out EmptyStmt)
-         (struct-out LabelStmt)
-         (struct-out IfStmt)
-         (struct-out WhileStmt)
-         (struct-out DoWhileStmt)
-         (struct-out BreakStmt)
-         (struct-out ContinueStmt)
-         (struct-out TryStmt)
-         (struct-out FinallyStmt)
-         (struct-out CatchStmt)
-         (struct-out ThrowStmt)
-         (struct-out ReturnStmt)
-         (struct-out EchoStmt)
-         (struct-out UnsetStmt)
-         (struct-out NamespaceStmt)
-         (struct-out NamespaceName)
-         (struct-out UseDeclaration)
-         (struct-out UseStmt)
-         (struct-out FunctionDcl)
-         (struct-out LambdaDcl)
-         (struct-out MethodDcl)
-         (struct-out ParameterDcl)
-         (struct-out ClassDcl)
-         (struct-out InterfaceDcl)
-         (struct-out ConstClassDcl)
-         (struct-out GotoStmt)
-         (struct-out PropertyDcl)
-         (struct-out ConstDcl)
-         (struct-out DeclareStmt)
-         (struct-out GlobalStmt)
-         (struct-out StaticStmt)
-         (struct-out IssetExpr)
-         (struct-out IncludeExpr)
-         (struct-out IncludeOnceExpr)
-         (struct-out EmptyExpr)
-         (struct-out EvalExpr)
-         (struct-out RequireExpr)
-         (struct-out RequireOnceExpr)
-         (struct-out BackQuoteExpr)
-         (struct-out ForLoop)
-         (struct-out Switch)
-         (struct-out ForEachLoop)
-         (struct-out ListPattern)
-         (struct-out TraitAlias)
-         (struct-out TraitStmt)
-         (struct-out ChainBrace)
-         (struct-out TraitPrecedence)
-         (struct-out ChainCall)
-         (struct-out ChainArray)
-         (struct-out ConstDcls)
-         (struct-out ConstClassDcls))
+         php-expr-parser)
 
 
 (define-lex-abbrevs
@@ -709,7 +628,7 @@ ELLIPSIS))
       [(expr INSTANCEOF class_name_reference)
        (InstanceOfExpr $1-start-pos $3-end-pos $1 $3)]
       [(expr QUESTION expr COLON expr) (TestExpr $1-start-pos $5-end-pos $1 $3 $5)]
-      [(expr QUESTION COLON expr) (TestExpr $1-start-pos $4-end-pos $1 null $4)]
+      [(expr QUESTION COLON expr) (TestExpr $1-start-pos $4-end-pos $1 #f $4)]
       [(UNSET_CAST  expr) (UnsetCast $1-start-pos $2-end-pos $2)]
       [(EXIT exit_expr) (Exit $1-start-pos $2-end-pos $2)]
       [(AT expr) (AtExpr $1-start-pos $2-end-pos $2)]
@@ -722,7 +641,7 @@ ELLIPSIS))
       [(STATIC lambda_expr)
        (LambdaDcl $1-start-pos $2-end-pos
                   (LambdaDcl-documentation $2)
-                  true
+                  #t
                   (LambdaDcl-args $2)
                   (LambdaDcl-lexical $2)
                   (LambdaDcl-body $2)
@@ -762,16 +681,16 @@ ELLIPSIS))
      (lambda_expr
       [(FUNCTION OPAREN parameter_list CPAREN lexical_vars OBRACE inner_statement_list
                  CBRACE)
-       (LambdaDcl $1-start-pos $8-end-pos null false $3 $5 $7 false)]
+       (LambdaDcl $1-start-pos $8-end-pos #f #f $3 $5 $7 #f)]
       [(FUNCTION AMPERSTAND OPAREN parameter_list CPAREN lexical_vars OBRACE
                  inner_statement_list CBRACE)
-       (LambdaDcl $1-start-pos $9-end-pos null false $4 $6 $8 true)]
+       (LambdaDcl $1-start-pos $9-end-pos #f #f $4 $6 $8 #t)]
       [(DOCUMENTATION FUNCTION OPAREN parameter_list CPAREN lexical_vars OBRACE
                       inner_statement_list CBRACE)
-       (LambdaDcl $1-start-pos $9-end-pos $1 false $4 $6 $8 false)]
+       (LambdaDcl $1-start-pos $9-end-pos $1 #f $4 $6 $8 #f)]
       [(DOCUMENTATION FUNCTION AMPERSTAND OPAREN parameter_list
                       CPAREN lexical_vars OBRACE inner_statement_list CBRACE)
-       (LambdaDcl $1-start-pos $10-end-pos $1 false $5 $7 $9 true)])
+       (LambdaDcl $1-start-pos $10-end-pos $1 #f $5 $7 $9 #t)])
 
 
      (internal_functions_in_yacc
@@ -1020,7 +939,7 @@ ELLIPSIS))
        (ClassName $1-start-pos $3-end-pos $1 $3)])
 
      (dim_offset
-      [() null]
+      [() #f]
       [(expr) $1])
 
      (reference_variable
@@ -1035,7 +954,7 @@ ELLIPSIS))
       [(DOLLAR OBRACE expr CBRACE) (BraceVariable $1-start-pos $4-end-pos $3)])
 
      (yield_expr
-      [(YIELD expr) (Yield $1-start-pos $2-end-pos $2 null)]
+      [(YIELD expr) (Yield $1-start-pos $2-end-pos $2 #f)]
       [(YIELD expr DOUBLE_ARROW expr) (Yield $1-start-pos $4-end-pos  $2 $4)])
 
 
@@ -1070,16 +989,16 @@ ELLIPSIS))
      (unticked_function_declaration_statement
       [(FUNCTION AMPERSTAND IDENT OPAREN parameter_list CPAREN
                  OBRACE inner_statement_list CBRACE)
-       (FunctionDcl $1-start-pos $9-end-pos null $3 $5 $8 true)]
+       (FunctionDcl $1-start-pos $9-end-pos #f $3 $5 $8 #t)]
       [(FUNCTION IDENT OPAREN parameter_list CPAREN
                  OBRACE inner_statement_list CBRACE)
-       (FunctionDcl $1-start-pos $8-end-pos null $2 $4 $7 false)]
+       (FunctionDcl $1-start-pos $8-end-pos #f $2 $4 $7 #f)]
       [(DOCUMENTATION FUNCTION AMPERSTAND IDENT OPAREN parameter_list CPAREN
                       OBRACE inner_statement_list CBRACE)
-       (FunctionDcl $1-start-pos $10-end-pos $1 $4 $6 $9 true)]
+       (FunctionDcl $1-start-pos $10-end-pos $1 $4 $6 $9 #t)]
       [(DOCUMENTATION FUNCTION IDENT OPAREN parameter_list CPAREN
                       OBRACE inner_statement_list CBRACE)
-       (FunctionDcl $1-start-pos $9-end-pos $1 $3 $5 $8 false)])
+       (FunctionDcl $1-start-pos $9-end-pos $1 $3 $5 $8 #f)])
 
      (parameter_list
       [(non_empty_parameter_list) $1]
@@ -1095,7 +1014,7 @@ ELLIPSIS))
 
      (parameter_dcl
       [(optional_class_type is_reference is_variadic VARIABLE)
-       (ParameterDcl $1-start-pos $2-end-pos $1 $4 $2 $3 null)]
+       (ParameterDcl $1-start-pos $2-end-pos $1 $4 $2 $3 #f)]
       [(optional_class_type is_reference is_variadic VARIABLE ASSIGN static_scalar)
        (ParameterDcl $1-start-pos $5-end-pos $1 $4 $2 $3 $6)])
 
@@ -1126,7 +1045,7 @@ ELLIPSIS))
      (use_declaration
       [(namespace_name) (UseDeclaration $1-start-pos $1-end-pos
                                         (NamespaceName $1-start-pos $1-end-pos #f $1)
-                                        null)]
+                                        #f)]
       [(namespace_name AS IDENT)
        (UseDeclaration $1-start-pos $3-end-pos
                        (NamespaceName $1-start-pos $1-end-pos #f $1)
@@ -1134,7 +1053,7 @@ ELLIPSIS))
       [(NS_SEPARATOR namespace_name)
        (UseDeclaration $1-start-pos $2-end-pos
                        (NamespaceName $1-start-pos $2-end-pos #t $2)
-                       null)]
+                       #f)]
       [(NS_SEPARATOR namespace_name AS IDENT)
        (UseDeclaration $1-start-pos $3-end-pos
                        (NamespaceName $1-start-pos $2-end-pos #t $2)
@@ -1145,7 +1064,7 @@ ELLIPSIS))
       [(unticked_class_declaration_statement) $1])
 
      (empty_documentation
-      [() null]
+      [() #f]
       [(DOCUMENTATION) $1])
 
      (unticked_class_declaration_statement
@@ -1163,7 +1082,7 @@ ELLIPSIS))
       [(FINAL CLASS) '(FINAL)])
 
      (extends_from
-      [() null]
+      [() #f]
       [(EXTENDS fully_qualified_class_name) $2])
 
      (interface_extends_list
@@ -1189,10 +1108,10 @@ ELLIPSIS))
       [(trait_use_statement) $1]
       [(empty_documentation method_modifiers FUNCTION IDENT OPAREN
                             parameter_list CPAREN method_body)
-       (MethodDcl $2-start-pos $8-end-pos $1 $2 $4 $6 $8 false)]
+       (MethodDcl $2-start-pos $8-end-pos $1 $2 $4 $6 $8 #f)]
       [(empty_documentation method_modifiers FUNCTION AMPERSTAND IDENT OPAREN
                             parameter_list CPAREN method_body)
-       (MethodDcl $2-start-pos $9-end-pos $1 $2 $5 $7 $9 false)])
+       (MethodDcl $2-start-pos $9-end-pos $1 $2 $5 $7 $9 #f)])
 
      (trait_use_statement
       [(USE trait_list trait_adaptations)
@@ -1243,7 +1162,7 @@ ELLIPSIS))
        (TraitAlias $1-start-pos $3-end-pos $1 $3)])
 
      (trait_modifiers
-      [() null]
+      [() #f]
       [(member_modifier) $1])
 
      (method_body
@@ -1328,11 +1247,11 @@ ELLIPSIS))
        (ForEachLoop $1-start-pos $8-end-pos $3 $5 $6 $8)]
       [(FOREACH OPAREN expr_without_variable AS variable foreach_optional_arg CPAREN foreach_statement)
        (ForEachLoop $1-start-pos $8-end-pos $3 $5 $6 $8)]
-      [(BREAK SEMICOLON) (BreakStmt $1-start-pos $2-end-pos null)]
+      [(BREAK SEMICOLON) (BreakStmt $1-start-pos $2-end-pos #f)]
       [(BREAK expr SEMICOLON) (BreakStmt $1-start-pos $3-end-pos $2)]
-      [(CONTINUE SEMICOLON) (ContinueStmt $1-start-pos $2-end-pos null)]
+      [(CONTINUE SEMICOLON) (ContinueStmt $1-start-pos $2-end-pos #f)]
       [(CONTINUE expr SEMICOLON) (ContinueStmt $1-start-pos $3-end-pos $2)]
-      [(RETURN SEMICOLON) (ReturnStmt $1-start-pos $2-end-pos null)]
+      [(RETURN SEMICOLON) (ReturnStmt $1-start-pos $2-end-pos #f)]
       [(RETURN expr_without_variable SEMICOLON) (ReturnStmt $1-start-pos $3-end-pos $2)]
       [(RETURN variable SEMICOLON) (ReturnStmt $1-start-pos $3-end-pos $2)]
       [(TRY OBRACE inner_statement_list CBRACE catch_statement finally_statement)
@@ -1385,7 +1304,7 @@ ELLIPSIS))
        (list* (CatchStmt $1-start-pos $9-end-pos $3 $4 $7) $9)])
 
      (finally_statement
-      [() null]
+      [() #f]
       [(FINALLY OBRACE inner_statement_list CBRACE)
        (FinallyStmt $1-start-pos $4-end-pos $3)])
 
@@ -1405,7 +1324,7 @@ ELLIPSIS))
        (CatchStmt $1-start-pos $8-end-pos $3 $4 $7)])
 
      (foreach_optional_arg
-      [() null]
+      [() #f]
       [(DOUBLE_ARROW foreach_variable) $2])
 
      (foreach_variable
@@ -1431,11 +1350,11 @@ ELLIPSIS))
        (append $1 (list (list 'DEFAULT $4)))])
 
      (case_separator
-      [(COLON) null]
+      [(COLON) null] ;; more (void)
       [(SEMICOLON) null])
 
      (for_expr
-      [() null]
+      [() #f]
       [(non_empty_for_expr) $1])
 
      (non_empty_for_expr
@@ -1478,7 +1397,7 @@ ELLIPSIS))
       [(non_empty_static_array_pair_list possible_comma) $1])
 
      (possible_comma
-      [() null]
+      [() null] ;; (void)
       [(COMMA) null])
 
 
@@ -1555,196 +1474,6 @@ ELLIPSIS))
                      [(namespace_name NS_SEPARATOR IDENT)
                       (append $1 (list $3))])))))
 
-
-(ast-struct NamespaceName Position (global name)
-            #:transparent)
-
-(ast-struct ClassName Position (class property) #:transparent)
-(ast-struct FunctionCallParameter Position (expr unpack) #:transparent)
-
-;; ---- VARIABLES ----
-(ast-struct AddrVariable Position (expr) #:transparent)
-(ast-struct ArrayAccess Position (expr inside-expr) #:transparent)
-(ast-struct BraceAccess Position (expr inside-expr) #:transparent)
-(ast-struct ObjectAccess Position (expr) #:transparent)
-(ast-struct BraceNaming Position (expr) #:transparent)
-(ast-struct ChainBrace Position (expr) #:transparent)
-(ast-struct ChainArray Position (expr) #:transparent)
-(ast-struct BraceVariable Position (expr) #:transparent)
-(ast-struct Variable Position (name) #:transparent)
-(ast-struct IndirectionVariable Position (variable levels) #:transparent)
-(ast-struct ObjectChain Position (list) #:transparent)
-
-
-;; ---- ARRAY LITERAL ----
-(ast-struct Array Position (exprs) #:transparent)
-(ast-struct LiteralArray Position (exprs) #:transparent)
-
-;; ---- EXPRS ----
-(ast-struct BackQuoteExpr Position (value) #:transparent)
-(ast-struct Binary Position (op left right) #:transparent)
-(ast-struct Infix Position (op expr) #:transparent)
-(ast-struct Postfix Position(op expr) #:transparent)
-(ast-struct Unary Position (op expr) #:transparent)
-(ast-struct Cast Position (to expr) #:transparent)
-(ast-struct Assign Position (op left right) #:transparent)
-(ast-struct Yield Position (expr alias) #:transparent)
-(ast-struct Exit Position (expr) #:transparent)
-(ast-struct Clone Position (expr) #:transparent)
-(ast-struct NewExpr Position (class parameters) #:transparent)
-(ast-struct InstanceOfExpr Position (left right) #:transparent)
-(ast-struct TestExpr Position (test then else) #:transparent)
-(ast-struct PrintExpr Position (expr) #:transparent)
-(ast-struct AtExpr Position (expr) #:transparent)
-(ast-struct UnsetCast Position (expr) #:transparent)
-(ast-struct FunctionCall Position (expr args) #:transparent)
-
-;; ---- DEDICATED EXPRS ----
-(ast-struct UseDeclaration Position (name alias) #:transparent)
-(struct ParameterDcl Position (type name reference default)
-        #:transparent
-        #:property prop:sub-ast
-        (lambda (x)
-          (list
-           (ParameterDcl-type x)
-           (ParameterDcl-name x)
-           (ParameterDcl-reference x)
-           (ParameterDcl-default x))))
-
-(ast-struct DeclareStmt Position (list stmt) #:transparent)
-(ast-struct ListPattern Position (pattern) #:transparent)
-(ast-struct TraitAlias Position (from to) #:transparent)
-(ast-struct TraitPrecedence Position (from to) #:transparent)
-
-;; ---- STATEMENTS ----
-(ast-struct ForLoop Position (init test step statement) #:transparent)
-(ast-struct Switch Position (test cases) #:transparent)
-(ast-struct ForEachLoop Position (variable loop-variable option stmt) #:transparent)
-(ast-struct UseStmt Position (uses type) #:transparent)
-(ast-struct GlobalStmt Position (list) #:transparent)
-(ast-struct StaticStmt Position (list) #:transparent)
-(ast-struct IfStmt Position (test then elseifs else) #:transparent)
-(ast-struct WhileStmt Position (test stmt) #:transparent)
-(ast-struct DoWhileStmt Position (test stmt) #:transparent)
-(ast-struct BlockStmt Position (stmts) #:transparent)
-(ast-struct ExprStmt Position (expr) #:transparent)
-(ast-struct EmptyStmt Position () #:transparent)
-(ast-struct LabelStmt Position (label) #:transparent)
-(ast-struct TraitStmt Position (list adapter) #:transparent)
-(ast-struct TryStmt Position (stmts catchs finally) #:transparent)
-(ast-struct FinallyStmt Position (stmts) #:transparent)
-(ast-struct CatchStmt Position (exception variable statement) #:transparent)
-(ast-struct ThrowStmt Position (expr) #:transparent)
-(ast-struct BreakStmt Position (label) #:transparent)
-(ast-struct ContinueStmt Position (label) #:transparent)
-(ast-struct ReturnStmt Position (expr) #:transparent)
-(ast-struct EchoStmt Position (exprs) #:transparent)
-(ast-struct UnsetStmt Position (variables) #:transparent)
-(ast-struct GotoStmt Position (label) #:transparent)
-(ast-struct EmptyExpr Position (expr) #:transparent)
-(ast-struct EvalExpr Position (expr) #:transparent)
-
-(struct FunctionDcl Position
-        (documentation name args body reference)
-        #:transparent
-        #:property prop:sub-ast
-        (lambda (x)
-          (list
-           (FunctionDcl-name x)
-           (FunctionDcl-args x)
-           (FunctionDcl-body x)
-           (FunctionDcl-reference x))))
-
-(struct LambdaDcl Position
-        (documentation static args lexical body reference)
-        #:property prop:sub-ast
-        (lambda (x)
-          (list
-           (LambdaDcl-static x)
-           (LambdaDcl-args x)
-           (LambdaDcl-lexical x)
-           (LambdaDcl-body x)
-           (LambdaDcl-reference x)))
-        #:transparent)
-
-(struct ConstClassDcl Position (documentation name value)
-        #:transparent
-        #:property prop:sub-ast
-        (lambda (x)
-          (list (ConstClassDcl-name x) (ConstClassDcl-value x))))
-
-(ast-struct RequireExpr Position (expr) #:transparent)
-(ast-struct RequireOnceExpr Position (expr) #:transparent)
-(ast-struct IssetExpr Position (expr) #:transparent)
-(ast-struct IncludeExpr Position (expr) #:transparent)
-(ast-struct IncludeOnceExpr Position (expr) #:transparent)
-
-(ast-struct ChainCall Position (args) #:transparent)
-
-(ast-struct NamespaceStmt Position (name body) #:transparent)
-
-(struct MethodDcl Position
-        (documentation modifiers name args body reference)
-        #:transparent
-        #:property prop:sub-ast
-        (lambda (x)
-          (list
-           (MethodDcl-modifiers x)
-           (MethodDcl-name x)
-           (MethodDcl-args x)
-           (MethodDcl-body x)
-           (MethodDcl-reference x))))
-
-(struct ClassDcl Position
-        (documentation modifiers name extend implements body)
-        #:transparent
-        #:property prop:sub-ast
-        (lambda (x)
-          (list
-           (ClassDcl-modifiers x)
-           (ClassDcl-name x)
-           (ClassDcl-extend x)
-           (ClassDcl-implements x)
-           (ClassDcl-body x))))
-
-(struct InterfaceDcl Position
-        (documentation name extends body)
-        #:transparent
-        #:property prop:sub-ast
-        (lambda (x)
-          (list
-           (InterfaceDcl-name x)
-           (InterfaceDcl-extends x)
-           (InterfaceDcl-body x))))
-
-(struct PropertyDcl Position
-        (documentation modifiers variables)
-        #:transparent
-        #:property prop:sub-ast
-        (lambda (x)
-          (list (PropertyDcl-modifiers x) (PropertyDcl-variables x))))
-
-(struct ConstDcl Position
-        (documentation name value)
-        #:transparent
-        #:property prop:sub-ast
-        (lambda (x)
-          (list (ConstDcl-name x) (ConstDcl-value x))))
-
-(struct ConstDcls Position
-        (list)
-        #:transparent
-        #:property prop:sub-ast
-        (lambda (x)
-          (ConstDcls-list x)))
-
-(struct ConstClassDcls Position
-        (list)
-        #:transparent
-        #:property prop:sub-ast
-        (lambda (x)
-          (ConstClassDcls-list x)))
-
 (define (useless-token? token)
   (define name (token-name (position-token-token token)))
   (or (equal? 'LINE_COMMENT name)
@@ -1787,7 +1516,7 @@ ELLIPSIS))
 
 (module+ test
   (define parse-string (compose php-parse open-input-string))
-  (define parse-expr (compose ExprStmt-expr
+  (define parse-stmt (compose ExprStmt-expr
                               first
                               parse-string
                               (curry string-append "<?php ")))
@@ -1817,19 +1546,19 @@ ELLIPSIS))
       (check-pred NewExpr? (first obj-lst))
       (check-pred ObjectAccess? (second obj-lst))))
 
-  (let ([ast (parse-expr "new $this->house;")])
+  (let ([ast (parse-stmt "new $this->house;")])
     (check-pred NewExpr? ast)
     (check-pred ObjectChain? (NewExpr-class ast))
     (check-pred ObjectAccess? (second (ObjectChain-list (NewExpr-class ast)))))
-  (let ([ast (parse-expr "(my_fun('arg1', 'arg2', 'arg3'));")])
+  (let ([ast (parse-stmt "(my_fun('arg1', 'arg2', 'arg3'));")])
     (check-pred FunctionCall? ast))
 
-  (let ([ast (parse-expr "someFun($a, ...$b);")])
+  (let ([ast (parse-stmt "someFun($a, ...$b);")])
     (check-true (FunctionCallParameter-unpack (second (FunctionCall-args ast))))
     (check-false (FunctionCallParameter-unpack (first (FunctionCall-args ast)))))
 
-  (let ([ast (parse-expr "1**2;")])
+  (let ([ast (parse-stmt "1**2;")])
     (check-equal? (Binary-op ast) 'EXPO))
 
-  (let ([ast (parse-expr "$a instanceOf \\Exception;")])
+  (let ([ast (parse-stmt "$a instanceOf \\Exception;")])
     (check-pred InstanceOfExpr? ast)))
