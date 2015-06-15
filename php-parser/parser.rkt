@@ -230,8 +230,12 @@ ELLIPSIS))
    [(ignore-case "break") 'BREAK]
    [(ignore-case "continue") 'CONTINUE]
    [(ignore-case "goto") 'GOTO]
-   [(ignore-case "function") 'FUNCTION]
-   [(ignore-case "const") 'CONST]
+   [(ignore-case "function") (begin
+                               (lexer-no-keyword 'one)
+                               'FUNCTION)]
+   [(ignore-case "const") (begin
+                            (lexer-no-keyword 'one)
+                            'CONST)]
    [(ignore-case "return") 'RETURN]
    [(ignore-case "try") 'TRY]
    [(ignore-case "catch") 'CATCH]
@@ -250,10 +254,18 @@ ELLIPSIS))
    [(ignore-case "unset") 'UNSET]
    [(ignore-case "isset") 'ISSET]
    [(ignore-case "empty") 'EMPTY]
-   [(ignore-case "class") 'CLASS]
-   [(ignore-case "trait") 'TRAIT]
-   [(ignore-case "interface") 'INTERFACE]
-   [(ignore-case "extends") 'EXTENDS]
+   [(ignore-case "class") (begin
+                            (lexer-no-keyword 'one)
+                            'CLASS)]
+   [(ignore-case "trait") (begin
+                            (lexer-no-keyword 'one)
+                            'TRAIT)]
+   [(ignore-case "interface") (begin
+                                (lexer-no-keyword 'comma)
+                                'INTERFACE)]
+   [(ignore-case "extends") (begin
+                              (lexer-no-keyword 'one)
+                              'EXTENDS)]
    [(ignore-case "include") 'INCLUDE]
    [(ignore-case "include_once") 'INCLUDE_ONCE]
    [(ignore-case "eval") 'EVAL]
@@ -318,7 +330,7 @@ ELLIPSIS))
    ["(unset)" 'UNSET_CAST]
    ["__NAMESPACE__" 'NS_C]
    ["->" (begin
-           (lexer-no-keyword #t)
+           (lexer-no-keyword 'one)
            'OBJECT_OPERATOR)]
    ["=>" 'DOUBLE_ARROW]
    ["__CLASS__" 'CLASS_C]
@@ -335,7 +347,9 @@ ELLIPSIS))
    ["?>" 'CLOSE_TAG]
 ;;   ["${" 'DOLLAR_OPEN_CURLY_BRACES]
 ;;   ["{$" 'CURLY_OPEN]
-   ["::" 'PAAMAYIM_NEKUDOTAYIM]
+   ["::" (begin
+           (lexer-no-keyword 'one)
+           'PAAMAYIM_NEKUDOTAYIM)]
    ["\\" 'NS_SEPARATOR]
 
    [#\' (let ([data (tokenize-string #\' input-port)])
@@ -540,11 +554,22 @@ ELLIPSIS))
 (define lexer-no-keyword (make-parameter #f))
 
 (define (php-lexer input-port)
-  (if (lexer-no-keyword)
-      (begin
-        (lexer-no-keyword #f)
-        (php-lexer-without-keywords input-port))
-      (php-lexer-with-keywords input-port)))
+  (case (lexer-no-keyword)
+    [(one)
+     (let ([token (php-lexer-without-keywords input-port)])
+       (case (token-name (position-token-token token))
+         [(BLANKS) (void)]
+         [else (lexer-no-keyword #f)])
+       token)]
+    [(comma)
+     (if (regexp-match-peek #rx"^ *(?i:extends )" input-port)
+         (php-lexer-with-keywords input-port)
+         (let ([token (php-lexer-without-keywords input-port)])
+           (case (token-name (position-token-token token))
+             [(COMMA IDENT BLANKS) (void)]
+             [else (lexer-no-keyword #f)])
+           token))]
+    [else (php-lexer-with-keywords input-port)]))
 
 ;; It didn't probably parse all php constructs.
 (define-values (php-parser php-expr-parser)
