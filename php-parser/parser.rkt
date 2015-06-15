@@ -1549,9 +1549,7 @@ ELLIPSIS))
       [(NS_C) 'NS_C]
       ;; | T_START_HEREDOC T_ENCAPSED_AND_WHITESPACE T_END_HEREDOC
       ;; | T_START_HEREDOC T_END_HEREDOC
-
-
-      ;;[(HEREDOC) 'HEREDOC] -- not used beacause cause reduce/reduce
+      [(HEREDOC) 'HEREDOC]
       ;;conflicts with scalar rule
       )
 
