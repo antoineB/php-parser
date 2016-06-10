@@ -29,12 +29,11 @@
          (struct-out IndirectionVariable)
          (struct-out ObjectChain)
          (struct-out Array)
-         (struct-out LiteralArray)
+         (struct-out ShortArray)
          (struct-out InstanceOfExpr)
          (struct-out TestExpr)
          (struct-out PrintExpr)
          (struct-out AtExpr)
-         (struct-out UnsetCast)
          (struct-out Binary)
          (struct-out Infix)
          (struct-out Postfix)
@@ -102,7 +101,11 @@
          (struct-out ChainCall)
          (struct-out ChainArray)
          (struct-out ConstDcls)
-         (struct-out ConstClassDcls))
+         (struct-out ConstClassDcls)
+         (struct-out Literal)
+         (struct-out HeredocLiteral)
+         (struct-out DQStringLiteral)
+         (struct-out StringLiteral))
 
 
 (define-lex-abbrevs
@@ -698,12 +701,13 @@ ELLIPSIS))
 
 
      (cast_expr
+      [(UNSET_CAST  expr) (Cast $1-start-pos $2-end-pos 'UNSET_CAST)]
       [(BOOL_CAST   expr) (Cast $1-start-pos $2-end-pos 'BOOL_CAST $2)]
-      [(INT_CAST           expr) (Cast $1-start-pos $2-end-pos 'INT_CAST $2)]
+      [(INT_CAST    expr) (Cast $1-start-pos $2-end-pos 'INT_CAST $2)]
       [(DOUBLE_CAST expr) (Cast $1-start-pos $2-end-pos 'DOUBLE_CAST $2)]
       [(STRING_CAST expr) (Cast $1-start-pos $2-end-pos 'STRING_CAST $2)]
       [(ARRAY_CAST  expr) (Cast $1-start-pos $2-end-pos 'ARRAY_CAST $2)]
-      [(BIN_CAST  expr)   (Cast $1-start-pos $2-end-pos 'BIN_CAST $2)]
+      [(BIN_CAST    expr) (Cast $1-start-pos $2-end-pos 'BIN_CAST $2)]
       [(OBJECT_CAST expr) (Cast $1-start-pos $2-end-pos 'OBJECT_CAST $2)])
 
      (variable
@@ -735,7 +739,6 @@ ELLIPSIS))
        (InstanceOfExpr $1-start-pos $3-end-pos $1 $3)]
       [(expr QUESTION expr COLON expr) (TestExpr $1-start-pos $5-end-pos $1 $3 $5)]
       [(expr QUESTION COLON expr) (TestExpr $1-start-pos $4-end-pos $1 null $4)]
-      [(UNSET_CAST  expr) (UnsetCast $1-start-pos $2-end-pos $2)]
       [(EXIT exit_expr) (Exit $1-start-pos $2-end-pos $2)]
       [(AT expr) (AtExpr $1-start-pos $2-end-pos $2)]
       [(PRINT expr) (PrintExpr $1-start-pos $2-end-pos $2)]
@@ -886,7 +889,7 @@ ELLIPSIS))
 
      (combined_scalar
       [(ARRAY OPAREN array_pair_list CPAREN) (Array $1-start-pos $4-end-pos $3)]
-      [(OBRAKET array_pair_list CBRAKET) (LiteralArray $1-start-pos $3-end-pos $2)])
+      [(OBRAKET array_pair_list CBRAKET) (ShortArray $1-start-pos $3-end-pos $2)])
 
 
      (assignment_list
@@ -910,8 +913,8 @@ ELLIPSIS))
       ;;conflicts
 
       ;;T_START_HEREDOC encaps_list T_END_HEREDOC
-      [(HEREDOC) 'HEREDOC]
-      [(CLASS_C) 'CLASS_C])
+      [(HEREDOC) (HeredocLiteral $1-start-pos $1-end-pos $1)]
+      [(CLASS_C) (Literal $1-start-pos $1-end-pos 'CLASS_C)])
 
 
      (class_name_scalar
@@ -1491,7 +1494,7 @@ ELLIPSIS))
       [(PLUS static_scalar) (Infix $1-start-pos $2-end-pos 'PLUS $2)]
       [(MINUS static_scalar) (Infix $1-start-pos $2-end-pos 'MINUS $2)]
       [(ARRAY OPAREN static_array_pair_list CPAREN) (Array $1-start-pos $4-end-pos $3)]
-      [(OBRAKET static_array_pair_list CBRAKET) (LiteralArray $1-start-pos $3-end-pos $2)]
+      [(OBRAKET static_array_pair_list CBRAKET) (ShortArray $1-start-pos $3-end-pos $2)]
       [(static_class_constant) $1]
       [(CLASS_C) 'CLASS_C])
 
@@ -1531,25 +1534,24 @@ ELLIPSIS))
       [(AMPERSTAND w_variable)
        (list (AddrVariable $1-start-pos $2-end-pos $2))])
 
-
      (common_scalar
-      [(BOOL_TRUE) 'BOOL_TRUE]
-      [(BOOL_FALSE) 'BOOL_FALSE]
-      [(INTEGER) $1]
-      [(FLOAT) $1]
+      [(BOOL_TRUE) (Literal $1-start-pos $1-end-pos 'BOOL_TRUE)]
+      [(BOOL_FALSE) (Literal $1-start-pos $1-end-pos 'BOOL_FALSE)]
+      [(INTEGER) (Literal $1-start-pos $1-end-pos $1)]
+      [(FLOAT) (Literal $1-start-pos $1-end-pos $1)]
       ;; | T_CONSTANT_ENCAPSED_STRING
-      [(D_QUOTE_STRING) $1] ;; use this instead of constant encapsed string
-      [(QUOTE_STRING) $1]
-      [(LINE) 'LINE]
-      [(FILE) 'FILE]
-      [(DIR) 'DIR]
-      [(TRAIT_C) 'TRAIT]
-      [(METHOD_C) 'METHOD_C]
-      [(FUNC_C) 'FUNC_C]
-      [(NS_C) 'NS_C]
+      [(D_QUOTE_STRING) (DQStringLiteral $1-start-pos $1-end-pos $1)] ;; use this instead of constant encapsed string
+      [(QUOTE_STRING) (StringLiteral $1-start-pos $1-end-pos $1)]
+      [(LINE) (Literal $1-start-pos $1-end-pos 'LINE)]
+      [(FILE) (Literal $1-start-pos $1-end-pos 'FILE)]
+      [(DIR) (Literal $1-start-pos $1-end-pos 'DIR)]
+      [(TRAIT_C) (Literal $1-start-pos $1-end-pos 'TRAIT)]
+      [(METHOD_C) (Literal $1-start-pos $1-end-pos 'METHOD_C)]
+      [(FUNC_C) (Literal $1-start-pos $1-end-pos 'FUNC_C)]
+      [(NS_C) (Literal $1-start-pos $1-end-pos 'NS_C)]
       ;; | T_START_HEREDOC T_ENCAPSED_AND_WHITESPACE T_END_HEREDOC
       ;; | T_START_HEREDOC T_END_HEREDOC
-      [(HEREDOC) 'HEREDOC]
+      [(HEREDOC) (HeredocLiteral $1-start-pos $1-end-pos $1)]
       ;;conflicts with scalar rule
       )
 
@@ -1582,6 +1584,12 @@ ELLIPSIS))
 (ast-struct ClassName Position (class property) #:transparent)
 (ast-struct FunctionCallParameter Position (expr unpack) #:transparent)
 
+(ast-struct Literal Position (value) #:transparent)
+(ast-struct HeredocLiteral Position (value) #:transparent)
+(ast-struct DQStringLiteral Position (value) #:transparent)
+(ast-struct StringLiteral Position (value) #:transparent)
+
+
 ;; ---- VARIABLES ----
 (ast-struct AddrVariable Position (expr) #:transparent)
 (ast-struct ArrayAccess Position (expr inside-expr) #:transparent)
@@ -1598,7 +1606,7 @@ ELLIPSIS))
 
 ;; ---- ARRAY LITERAL ----
 (ast-struct Array Position (exprs) #:transparent)
-(ast-struct LiteralArray Position (exprs) #:transparent)
+(ast-struct ShortArray Position (exprs) #:transparent)
 
 ;; ---- EXPRS ----
 (ast-struct BackQuoteExpr Position (value) #:transparent)
@@ -1616,8 +1624,9 @@ ELLIPSIS))
 (ast-struct TestExpr Position (test then else) #:transparent)
 (ast-struct PrintExpr Position (expr) #:transparent)
 (ast-struct AtExpr Position (expr) #:transparent)
-(ast-struct UnsetCast Position (expr) #:transparent)
 (ast-struct FunctionCall Position (expr args) #:transparent)
+(ast-struct EmptyExpr Position (expr) #:transparent)
+(ast-struct EvalExpr Position (expr) #:transparent)
 
 ;; ---- DEDICATED EXPRS ----
 (ast-struct UseDeclaration Position (name alias) #:transparent)
@@ -1662,8 +1671,6 @@ ELLIPSIS))
 (ast-struct EchoStmt Position (exprs) #:transparent)
 (ast-struct UnsetStmt Position (variables) #:transparent)
 (ast-struct GotoStmt Position (label) #:transparent)
-(ast-struct EmptyExpr Position (expr) #:transparent)
-(ast-struct EvalExpr Position (expr) #:transparent)
 
 (struct FunctionDcl Position
         (documentation name args body reference)
