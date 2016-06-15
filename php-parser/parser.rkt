@@ -457,6 +457,7 @@ ELLIPSIS))
    [">>" 'SR]
    ["++" 'INC]
    ["--" 'DEC]
+   ;; TODO: CAST can accept space and tab between parentesis
    ["(int)" 'INT_CAST]
    ["(Integer)" 'INT_CAST]
    ["(integer)" 'INT_CAST]
@@ -500,7 +501,7 @@ ELLIPSIS))
           (token-QUOTE_STRING (string-append "'" data)))]
    [#\" (let ([data (tokenize-string #\" input-port)])
           (token-QUOTE_STRING (string-append "\"" data)))]
-
+   ;; TODO: Add binary string b"" b''
    [#\` (let ([data (tokenize-string #\` input-port)])
           (token-BACKQUOTE_STRING (string-append "`" data)))]
 
