@@ -739,7 +739,7 @@ ELLIPSIS))
       [(expr INSTANCEOF class_name_reference)
        (InstanceOfExpr $1-start-pos $3-end-pos $1 $3)]
       [(expr QUESTION expr COLON expr) (TestExpr $1-start-pos $5-end-pos $1 $3 $5)]
-      [(expr QUESTION COLON expr) (TestExpr $1-start-pos $4-end-pos $1 null $4)]
+      [(expr QUESTION COLON expr) (TestExpr $1-start-pos $4-end-pos $1 #f $4)]
       [(EXIT exit_expr) (Exit $1-start-pos $2-end-pos $2)]
       [(AT expr) (AtExpr $1-start-pos $2-end-pos $2)]
       [(PRINT expr) (PrintExpr $1-start-pos $2-end-pos $2)]
@@ -751,7 +751,7 @@ ELLIPSIS))
       [(STATIC lambda_expr)
        (LambdaDcl $1-start-pos $2-end-pos
                   (LambdaDcl-documentation $2)
-                  true
+                  #t
                   (LambdaDcl-args $2)
                   (LambdaDcl-lexical $2)
                   (LambdaDcl-body $2)
@@ -791,16 +791,16 @@ ELLIPSIS))
      (lambda_expr
       [(FUNCTION OPAREN parameter_list CPAREN lexical_vars OBRACE inner_statement_list
                  CBRACE)
-       (LambdaDcl $1-start-pos $8-end-pos null false $3 $5 $7 false)]
+       (LambdaDcl $1-start-pos $8-end-pos #f #f $3 $5 $7 #f)]
       [(FUNCTION AMPERSTAND OPAREN parameter_list CPAREN lexical_vars OBRACE
                  inner_statement_list CBRACE)
-       (LambdaDcl $1-start-pos $9-end-pos null false $4 $6 $8 true)]
+       (LambdaDcl $1-start-pos $9-end-pos #f #f $4 $6 $8 #t)]
       [(DOCUMENTATION FUNCTION OPAREN parameter_list CPAREN lexical_vars OBRACE
                       inner_statement_list CBRACE)
-       (LambdaDcl $1-start-pos $9-end-pos $1 false $4 $6 $8 false)]
+       (LambdaDcl $1-start-pos $9-end-pos $1 #f $4 $6 $8 #f)]
       [(DOCUMENTATION FUNCTION AMPERSTAND OPAREN parameter_list
                       CPAREN lexical_vars OBRACE inner_statement_list CBRACE)
-       (LambdaDcl $1-start-pos $10-end-pos $1 false $5 $7 $9 true)])
+       (LambdaDcl $1-start-pos $10-end-pos $1 #f $5 $7 $9 #t)])
 
 
      (internal_functions_in_yacc
@@ -872,8 +872,8 @@ ELLIPSIS))
 
 
      (exit_expr
-      [() null]
-      [(OPAREN CPAREN) null]
+      [() #f]
+      [(OPAREN CPAREN) #f]
       [(parenthesis_expr) $1])
 
      (combined_scalar_offset
@@ -1064,7 +1064,7 @@ ELLIPSIS))
       [(DOLLAR OBRACE expr CBRACE) (BraceVariable $1-start-pos $4-end-pos $3)])
 
      (yield_expr
-      [(YIELD expr) (Yield $1-start-pos $2-end-pos $2 null)]
+      [(YIELD expr) (Yield $1-start-pos $2-end-pos $2 #f)]
       [(YIELD expr DOUBLE_ARROW expr) (Yield $1-start-pos $4-end-pos  $2 $4)])
 
 
@@ -1087,7 +1087,7 @@ ELLIPSIS))
       [(NAMESPACE namespace_name OBRACE top_statement_list CBRACE)
        (NamespaceStmt $1-start-pos $4-end-pos $2 $4)]
       [(NAMESPACE OBRACE top_statement_list CBRACE)
-       (NamespaceStmt $1-start-pos $4-end-pos null $3)]
+       (NamespaceStmt $1-start-pos $4-end-pos #f $3)]
       [(USE use_declarations SEMICOLON) (UseStmt $1-start-pos $3-end-pos $2 'class)]
       [(USE FUNCTION use_declarations SEMICOLON) (UseStmt $1-start-pos $4-end-pos $3 'function)]
       [(USE CONST use_declarations SEMICOLON) (UseStmt $1-start-pos $4-end-pos $3 'const)]
@@ -1099,16 +1099,16 @@ ELLIPSIS))
      (unticked_function_declaration_statement
       [(FUNCTION AMPERSTAND IDENT OPAREN parameter_list CPAREN
                  OBRACE inner_statement_list CBRACE)
-       (FunctionDcl $1-start-pos $9-end-pos null $3 $5 $8 true)]
+       (FunctionDcl $1-start-pos $9-end-pos #f $3 $5 $8 #t)]
       [(FUNCTION IDENT OPAREN parameter_list CPAREN
                  OBRACE inner_statement_list CBRACE)
-       (FunctionDcl $1-start-pos $8-end-pos null $2 $4 $7 false)]
+       (FunctionDcl $1-start-pos $8-end-pos #f $2 $4 $7 #f)]
       [(DOCUMENTATION FUNCTION AMPERSTAND IDENT OPAREN parameter_list CPAREN
                       OBRACE inner_statement_list CBRACE)
-       (FunctionDcl $1-start-pos $10-end-pos $1 $4 $6 $9 true)]
+       (FunctionDcl $1-start-pos $10-end-pos $1 $4 $6 $9 #t)]
       [(DOCUMENTATION FUNCTION IDENT OPAREN parameter_list CPAREN
                       OBRACE inner_statement_list CBRACE)
-       (FunctionDcl $1-start-pos $9-end-pos $1 $3 $5 $8 false)])
+       (FunctionDcl $1-start-pos $9-end-pos $1 $3 $5 $8 #f)])
 
      (parameter_list
       [(non_empty_parameter_list) $1]
@@ -1124,7 +1124,7 @@ ELLIPSIS))
 
      (parameter_dcl
       [(optional_class_type is_reference is_variadic VARIABLE)
-       (ParameterDcl $1-start-pos $2-end-pos $1 $4 $2 $3 null)]
+       (ParameterDcl $1-start-pos $2-end-pos $1 $4 $2 $3 #f)]
       [(optional_class_type is_reference is_variadic VARIABLE ASSIGN static_scalar)
        (ParameterDcl $1-start-pos $5-end-pos $1 $4 $2 $3 $6)])
 
@@ -1155,7 +1155,7 @@ ELLIPSIS))
      (use_declaration
       [(namespace_name) (UseDeclaration $1-start-pos $1-end-pos
                                         (NamespaceName $1-start-pos $1-end-pos #f $1)
-                                        null)]
+                                        #f)]
       [(namespace_name AS IDENT)
        (UseDeclaration $1-start-pos $3-end-pos
                        (NamespaceName $1-start-pos $1-end-pos #f $1)
@@ -1163,7 +1163,7 @@ ELLIPSIS))
       [(NS_SEPARATOR namespace_name)
        (UseDeclaration $1-start-pos $2-end-pos
                        (NamespaceName $1-start-pos $2-end-pos #t $2)
-                       null)]
+                       #f)]
       [(NS_SEPARATOR namespace_name AS IDENT)
        (UseDeclaration $1-start-pos $3-end-pos
                        (NamespaceName $1-start-pos $2-end-pos #t $2)
@@ -1174,7 +1174,7 @@ ELLIPSIS))
       [(unticked_class_declaration_statement) $1])
 
      (empty_documentation
-      [() null]
+      [() #f]
       [(DOCUMENTATION) $1])
 
      (unticked_class_declaration_statement
@@ -1192,7 +1192,7 @@ ELLIPSIS))
       [(FINAL CLASS) '(FINAL)])
 
      (extends_from
-      [() null]
+      [() #f]
       [(EXTENDS fully_qualified_class_name) $2])
 
      (interface_extends_list
@@ -1354,11 +1354,11 @@ ELLIPSIS))
        (ForEachLoop $1-start-pos $8-end-pos $3 $5 $6 $8)]
       [(FOREACH OPAREN expr_without_variable AS variable foreach_optional_arg CPAREN foreach_statement)
        (ForEachLoop $1-start-pos $8-end-pos $3 $5 $6 $8)]
-      [(BREAK SEMICOLON) (BreakStmt $1-start-pos $2-end-pos null)]
+      [(BREAK SEMICOLON) (BreakStmt $1-start-pos $2-end-pos #f)]
       [(BREAK expr SEMICOLON) (BreakStmt $1-start-pos $3-end-pos $2)]
-      [(CONTINUE SEMICOLON) (ContinueStmt $1-start-pos $2-end-pos null)]
+      [(CONTINUE SEMICOLON) (ContinueStmt $1-start-pos $2-end-pos #f)]
       [(CONTINUE expr SEMICOLON) (ContinueStmt $1-start-pos $3-end-pos $2)]
-      [(RETURN SEMICOLON) (ReturnStmt $1-start-pos $2-end-pos null)]
+      [(RETURN SEMICOLON) (ReturnStmt $1-start-pos $2-end-pos #f)]
       [(RETURN expr_without_variable SEMICOLON) (ReturnStmt $1-start-pos $3-end-pos $2)]
       [(RETURN variable SEMICOLON) (ReturnStmt $1-start-pos $3-end-pos $2)]
       [(TRY OBRACE inner_statement_list CBRACE catch_statement finally_statement)
@@ -1411,7 +1411,7 @@ ELLIPSIS))
        (list* (CatchStmt $1-start-pos $9-end-pos $3 $4 $7) $9)])
 
      (finally_statement
-      [() null]
+      [() #f]
       [(FINALLY OBRACE inner_statement_list CBRACE)
        (FinallyStmt $1-start-pos $4-end-pos $3)])
 
@@ -1431,7 +1431,7 @@ ELLIPSIS))
        (CatchStmt $1-start-pos $8-end-pos $3 $4 $7)])
 
      (foreach_optional_arg
-      [() null]
+      [() #f]
       [(DOUBLE_ARROW foreach_variable) $2])
 
      (foreach_variable
@@ -1457,8 +1457,8 @@ ELLIPSIS))
        (append $1 (list (list 'DEFAULT $4)))])
 
      (case_separator
-      [(COLON) null]
-      [(SEMICOLON) null])
+      [(COLON) (void)]
+      [(SEMICOLON) (void)])
 
      (for_expr
       [() null]
@@ -1504,8 +1504,8 @@ ELLIPSIS))
       [(non_empty_static_array_pair_list possible_comma) $1])
 
      (possible_comma
-      [() null]
-      [(COMMA) null])
+      [() (void)]
+      [(COMMA) (void)])
 
 
      (non_empty_static_array_pair_list
