@@ -74,6 +74,8 @@
          (struct-out MethodDcl)
          (struct-out ParameterDcl)
          (struct-out ClassDcl)
+         (struct-out ClassAnonymousDcl)
+         (struct-out TraitDcl)
          (struct-out InterfaceDcl)
          (struct-out ConstClassDcl)
          (struct-out GotoStmt)
@@ -135,7 +137,6 @@ CLOSE_TAG CURLY_OPEN PAAMAYIM_NEKUDOTAYIM NS_SEPARATOR
 SEMICOLON COLON NEG BAR HAT AMPERSTAND COMMA DOT PLUS MINUS DIV MULT MOD TILD AT EXPO
 QUESTION ASSIGN SMALLER GREATER LOW_PRIORITY_RULE HALT_COMPILER
 BOOL_TRUE BOOL_FALSE
-INT_HINT FLOAT_HINT BOOL_HINT STRING_HINT SELF_HINT VOID_HINT
 ELLIPSIS))
 
 (define-tokens value-tokens
@@ -285,12 +286,6 @@ ELLIPSIS))
    [(ignore-case "list") 'LIST]
    [(ignore-case "array") 'ARRAY]
    [(ignore-case "callable") 'CALLABLE]
-   ;; [(ignore-case "int") 'INT_HINT]
-   ;; [(ignore-case "float") 'FLOAT_HINT]
-   ;; [(ignore-case "bool") 'BOOL_HINT]
-   ;; [(ignore-case "string") 'STRING_HINT]
-   ;; [(ignore-case "self") 'SELF_HINT]
-   ;; [(ignore-case "void") 'VOID_HINT]
    [(ignore-case "namespace") 'NAMESPACE]
    [(ignore-case "true") 'BOOL_TRUE]
    [(ignore-case "false") 'BOOL_FALSE]
@@ -788,19 +783,20 @@ ELLIPSIS))
       [() '()]
       [(chaining_instance_call) $1])
 
+     (optional_return_type
+      [() #f]
+      [(COLON type_hint)
+       (match $2
+         [(NamespaceName _ _ #f '("void") _) 'VOID]
+         [else $2])])
+
      (lambda_expr
-      [(FUNCTION OPAREN parameter_list CPAREN lexical_vars OBRACE inner_statement_list
-                 CBRACE)
-       (LambdaDcl $1-start-pos $8-end-pos #f #f $3 $5 $7 #f)]
-      [(FUNCTION AMPERSTAND OPAREN parameter_list CPAREN lexical_vars OBRACE
-                 inner_statement_list CBRACE)
-       (LambdaDcl $1-start-pos $9-end-pos #f #f $4 $6 $8 #t)]
-      [(DOCUMENTATION FUNCTION OPAREN parameter_list CPAREN lexical_vars OBRACE
+      [(empty_documentation FUNCTION OPAREN parameter_list CPAREN lexical_vars optional_return_type OBRACE
                       inner_statement_list CBRACE)
-       (LambdaDcl $1-start-pos $9-end-pos $1 #f $4 $6 $8 #f)]
-      [(DOCUMENTATION FUNCTION AMPERSTAND OPAREN parameter_list
-                      CPAREN lexical_vars OBRACE inner_statement_list CBRACE)
-       (LambdaDcl $1-start-pos $10-end-pos $1 #f $5 $7 $9 #t)])
+       (LambdaDcl $1-start-pos $9-end-pos $1 #f $4 $6 $9 #f $7)]
+      [(empty_documentation FUNCTION AMPERSTAND OPAREN parameter_list
+                      CPAREN lexical_vars optional_return_type OBRACE inner_statement_list CBRACE)
+       (LambdaDcl $1-start-pos $10-end-pos $1 #f $5 $7 $10 #t $8)])
 
 
      (internal_functions_in_yacc
@@ -822,7 +818,15 @@ ELLIPSIS))
       [(variable) $1]
       [(expr_without_new) $1])
 
+     (anonymous_class
+      [(class_entry_type ctor_arguments class_def_part)
+       ;; no documentation
+       (cons
+        $2
+        (ClassAnonymousDcl #f $1-start-pos $3-end-pos $1 (vector-ref $3 0) (vector-ref $3 1) (vector-ref $3 2)))])
+
      (new_expr
+      [(NEW anonymous_class) (NewExpr $1-start-pos $2-end-pos (cdr $2) (car $2))]
       [(NEW class_name_reference ctor_arguments) (NewExpr $1-start-pos $3-end-pos $2 $3)])
 
      (ctor_arguments
@@ -1058,7 +1062,6 @@ ELLIPSIS))
       [(YIELD expr) (Yield $1-start-pos $2-end-pos $2 #f)]
       [(YIELD expr DOUBLE_ARROW expr) (Yield $1-start-pos $4-end-pos  $2 $4)])
 
-
      (program
       [(OPEN_TAG top_statement_list CLOSE_TAG) $2]
       [(OPEN_TAG top_statement_list) $2]
@@ -1088,18 +1091,14 @@ ELLIPSIS))
       [(unticked_function_declaration_statement) $1])
 
      (unticked_function_declaration_statement
-      [(FUNCTION AMPERSTAND IDENT OPAREN parameter_list CPAREN
-                 OBRACE inner_statement_list CBRACE)
-       (FunctionDcl $1-start-pos $9-end-pos #f $3 $5 $8 #t)]
-      [(FUNCTION IDENT OPAREN parameter_list CPAREN
-                 OBRACE inner_statement_list CBRACE)
-       (FunctionDcl $1-start-pos $8-end-pos #f $2 $4 $7 #f)]
-      [(DOCUMENTATION FUNCTION AMPERSTAND IDENT OPAREN parameter_list CPAREN
+      [(empty_documentation FUNCTION AMPERSTAND IDENT OPAREN parameter_list CPAREN
+                            optional_return_type
                       OBRACE inner_statement_list CBRACE)
-       (FunctionDcl $1-start-pos $10-end-pos $1 $4 $6 $9 #t)]
-      [(DOCUMENTATION FUNCTION IDENT OPAREN parameter_list CPAREN
+       (FunctionDcl $1-start-pos $10-end-pos $1 $4 $6 $10 #t $8)]
+      [(empty_documentation FUNCTION IDENT OPAREN parameter_list CPAREN
+                            optional_return_type
                       OBRACE inner_statement_list CBRACE)
-       (FunctionDcl $1-start-pos $9-end-pos $1 $3 $5 $8 #f)])
+       (FunctionDcl $1-start-pos $9-end-pos $1 $3 $5 $9 #f $7)])
 
      (parameter_list
       [(non_empty_parameter_list) $1]
@@ -1126,14 +1125,19 @@ ELLIPSIS))
 
      (optional_type_hint
       [() #f]
+      [(type_hint) $1])
+
+     (type_hint
       [(ARRAY) 'ARRAY]
       [(CALLABLE) 'CALLABLE]
-      [(INT_HINT) 'INT]
-      [(FLOAT_HINT) 'FLOAT]
-      [(BOOL_HINT) 'BOOL]
-      [(STRING_HINT) 'STRING]
-      [(SELF_HINT) 'SELF]
-      [(fully_qualified_class_name) $1])
+      [(fully_qualified_class_name)
+       (match $1
+         [(NamespaceName _ _ #f '("int") _) 'INT]
+         [(NamespaceName _ _ #f '("float") _) 'FLOAT]
+         [(NamespaceName _ _ #f '("bool") _) 'BOOL]
+         [(NamespaceName _ _ #f '("string") _) 'STRING]
+         [(NamespaceName _ _ #f '("self") _) 'SELF]
+         [else $1])])
 
      (constant_declaration
       [(constant_declaration COMMA IDENT ASSIGN expr)
@@ -1173,19 +1177,22 @@ ELLIPSIS))
       [() #f]
       [(DOCUMENTATION) $1])
 
+     (class_def_part
+      [(extends_from implements_list OBRACE class_statement_list CBRACE)
+       (vector $1 $2 $4)])
+
      (unticked_class_declaration_statement
-      [(empty_documentation class_entry_type IDENT extends_from implements_list OBRACE
-                            class_statement_list CBRACE)
-       (ClassDcl $2-start-pos $8-end-pos $1 $2 $3 $4 $5 $7)]
+      [(empty_documentation class_entry_type IDENT class_def_part)
+       (ClassDcl $2-start-pos $4-end-pos $1 $2 $3 (vector-ref $4 0) (vector-ref $4 1) (vector-ref $4 2))]
+      [(empty_documentation TRAIT IDENT OBRACE class_statement_list CBRACE)
+       (TraitDcl $2-start-pos $6-end-pos $3 $5)]
       [(empty_documentation INTERFACE IDENT interface_extends_list OBRACE
                             class_statement_list CBRACE)
        (InterfaceDcl $1-start-pos $7-end-pos $1 $3 $4 $6)])
 
-     ;; TODO: Make Trait it's on type
      (class_entry_type
       [(CLASS) '()]
       [(ABSTRACT CLASS) '(ABSTRACT)]
-      [(TRAIT) '(TRAIT)]
       [(FINAL CLASS) '(FINAL)])
 
      (extends_from
@@ -1214,8 +1221,8 @@ ELLIPSIS))
       [(class_constant_declaration SEMICOLON) $1]
       [(trait_use_statement) $1]
       [(empty_documentation method_modifiers FUNCTION is_reference IDENT OPAREN
-                            parameter_list CPAREN method_body)
-       (MethodDcl $2-start-pos $8-end-pos $1 $2 $5 $7 $9 $4)])
+                            parameter_list CPAREN optional_return_type method_body)
+       (MethodDcl $2-start-pos $8-end-pos $1 $2 $5 $7 $10 $4 $9)])
 
      (trait_use_statement
       [(USE trait_list trait_adaptations)
@@ -1662,7 +1669,7 @@ ELLIPSIS))
 (ast-struct GotoStmt Position (label) #:transparent)
 
 (struct FunctionDcl Position
-        (documentation name args body reference)
+        (documentation name args body reference return-type)
         #:transparent
         #:property prop:sub-ast
         (lambda (x)
@@ -1673,7 +1680,7 @@ ELLIPSIS))
            (FunctionDcl-reference x))))
 
 (struct LambdaDcl Position
-        (documentation static args lexical body reference)
+        (documentation static args lexical body reference return-type)
         #:property prop:sub-ast
         (lambda (x)
           (list
@@ -1701,7 +1708,7 @@ ELLIPSIS))
 (ast-struct NamespaceStmt Position (name body) #:transparent)
 
 (struct MethodDcl Position
-        (documentation modifiers name args body reference)
+        (documentation modifiers name args body reference return-type)
         #:transparent
         #:property prop:sub-ast
         (lambda (x)
@@ -1711,6 +1718,25 @@ ELLIPSIS))
            (MethodDcl-args x)
            (MethodDcl-body x)
            (MethodDcl-reference x))))
+
+(struct ClassAnonymousDcl Position
+  (documentation modifiers extend implements body)
+  #:transparent
+  #:property prop:sub-ast
+  (lambda (x)
+    (list
+     (ClassAnonymousDcl-modifiers x)
+     (ClassAnonymousDcl-extend x)
+     (ClassAnonymousDcl-implements x)
+     (ClassAnonymousDcl-body x))))
+
+(struct TraitDcl Position
+  (name body)
+  #:transparent
+  #:property prop:sub-ast
+  (lambda (x) (list
+               (TraitDcl-name x)
+               (TraitDcl-body x))))
 
 (struct ClassDcl Position
         (documentation modifiers name extend implements body)
@@ -1857,8 +1883,15 @@ ELLIPSIS))
     (check-equal? (Binary-op ast) 'EXPO))
 
   (let ([ast (parse-expr "$a instanceOf \\Exception;")])
-    (check-pred InstanceOfExpr? ast)))
+    (check-pred InstanceOfExpr? ast))
+
+  (let ([ast (parse-string "<?php function test_scalar(int $p) : string { return 12; }")])
+    (check-equal? (FunctionDcl-return-type (first ast)) 'STRING)
+    (check-equal? (ParameterDcl-type (first (FunctionDcl-args (first ast)))) 'INT))
+
+  (let ([ast (parse-expr "new class(12) { };")])
+    (check-true (ClassAnonymousDcl? (NewExpr-class ast)))))
 
 ;; TODO: should not be valid: <?php namespace \toto;
 ;; TODO: Add constant expression http://php.net/manual/en/migration56.new-features.php#migration56.new-features.const-scalar-exprs
-;; TODO: php7: http://php.net/manual/en/migration70.new-features.php expect scalar type hint
+;; TODO: php7: http://php.net/manual/en/migration70.new-features.php expect scalar type hint & anonymous class
