@@ -135,6 +135,7 @@ CLOSE_TAG CURLY_OPEN PAAMAYIM_NEKUDOTAYIM NS_SEPARATOR
 SEMICOLON COLON NEG BAR HAT AMPERSTAND COMMA DOT PLUS MINUS DIV MULT MOD TILD AT EXPO
 QUESTION ASSIGN SMALLER GREATER LOW_PRIORITY_RULE HALT_COMPILER
 BOOL_TRUE BOOL_FALSE
+INT_HINT FLOAT_HINT BOOL_HINT STRING_HINT SELF_HINT VOID_HINT
 ELLIPSIS))
 
 (define-tokens value-tokens
@@ -284,6 +285,12 @@ ELLIPSIS))
    [(ignore-case "list") 'LIST]
    [(ignore-case "array") 'ARRAY]
    [(ignore-case "callable") 'CALLABLE]
+   ;; [(ignore-case "int") 'INT_HINT]
+   ;; [(ignore-case "float") 'FLOAT_HINT]
+   ;; [(ignore-case "bool") 'BOOL_HINT]
+   ;; [(ignore-case "string") 'STRING_HINT]
+   ;; [(ignore-case "self") 'SELF_HINT]
+   ;; [(ignore-case "void") 'VOID_HINT]
    [(ignore-case "namespace") 'NAMESPACE]
    [(ignore-case "true") 'BOOL_TRUE]
    [(ignore-case "false") 'BOOL_FALSE]
@@ -598,7 +605,8 @@ ELLIPSIS))
      (left LOGICAL_XOR)
      (left LOGICAL_AND)
      (right PRINT)
-
+     (right YIELD)
+     (right DOUBLE_ARROW)
      (left ASSIGN PLUS_EQUAL MINUS_EQUAL MULT_EQUAL DIV_EQUAL
            CONCAT_EQUAL MOD_EQUAL AND_EQUAL OR_EQUAL XOR_EQUAL SL_EQUAL SR_EQUAL
            EXPO_EQUAL)
@@ -626,8 +634,7 @@ ELLIPSIS))
      (nonassoc NEW CLONE)
      (left ELSEIF)
      (left ELSE)
-     (left ENDIF)
-     (nonassoc YIELD))
+     (left ENDIF))
 
     (grammar
 
@@ -719,9 +726,8 @@ ELLIPSIS))
       [(base_variable_with_function_calls) $1])
 
      (parenthesis_expr
-      [(OPAREN r_variable CPAREN) $2]
-      [(OPAREN expr_without_new CPAREN) $2]
-      [(OPAREN yield_expr CPAREN) $2])
+      [(OPAREN variable CPAREN) $2]
+      [(OPAREN expr_without_new CPAREN) $2])
 
      (expr_without_new
       [(parenthesis_expr) $1]
@@ -731,10 +737,8 @@ ELLIPSIS))
                (ListPattern $1-start-pos $4-end-pos $3) $6)]
       [(combined_scalar_offset) $1]
       [(combined_scalar) $1]
-      [(OPAREN new_expr CPAREN instance_call)
-       (if (empty? $4)
-           $2
-           (ObjectChain $1-start-pos $4-end-pos (cons $2 $4)))]
+      [(OPAREN new_expr CPAREN chaining_instance_call)
+       (ObjectChain $1-start-pos $4-end-pos (cons $2 $4))]
       [(CLONE expr) (Clone $1-start-pos $2-end-pos $2)]
       [(expr INSTANCEOF class_name_reference)
        (InstanceOfExpr $1-start-pos $3-end-pos $1 $3)]
@@ -764,10 +768,6 @@ ELLIPSIS))
       [(infix_expr) $1]
       [(postfix_expr) $1]
       [(cast_expr) $1])
-
-     (expr_without_variable
-      [(new_expr) $1]
-      [(expr_without_new) $1])
 
      (chaining_method_or_property
       [(chaining_method_or_property variable_property) (append $1 $2)]
@@ -806,17 +806,13 @@ ELLIPSIS))
      (internal_functions_in_yacc
       [(ISSET OPAREN isset_variables CPAREN) (IssetExpr $1-start-pos $4-end-pos $3)]
       [(EMPTY OPAREN variable CPAREN) (EmptyExpr $1-start-pos $4-end-pos $3)]
-      [(EMPTY OPAREN expr_without_variable CPAREN)
+      [(EMPTY OPAREN expr_without_new CPAREN)
        (EmptyExpr $1-start-pos $4-end-pos $3)]
       [(INCLUDE expr) (IncludeExpr $1-start-pos $2-end-pos $2)]
       [(INCLUDE_ONCE expr) (IncludeOnceExpr $1-start-pos $2-end-pos $2)]
-      [(INCLUDE OPAREN expr CPAREN) (IncludeExpr $1-start-pos $4-end-pos $3)]
-      [(INCLUDE_ONCE OPAREN expr CPAREN) (IncludeOnceExpr $1-start-pos $4-end-pos $3)]
       [(EVAL OPAREN expr CPAREN) (EvalExpr $1-start-pos $4-end-pos $3)]
       [(REQUIRE expr) (RequireExpr $1-start-pos $2-end-pos $2)]
-      [(REQUIRE_ONCE expr) (RequireOnceExpr $1-start-pos $2-end-pos $2)]
-      [(REQUIRE OPAREN expr CPAREN) (RequireExpr $1-start-pos $4-end-pos $3)]
-      [(REQUIRE_ONCE OPAREN expr CPAREN) (RequireOnceExpr $1-start-pos $4-end-pos $3)])
+      [(REQUIRE_ONCE expr) (RequireOnceExpr $1-start-pos $2-end-pos $2)])
 
      (isset_variables
       [(isset_variable) (list $1)]
@@ -824,7 +820,7 @@ ELLIPSIS))
 
      (isset_variable
       [(variable) $1]
-      [(expr_without_variable) $1])
+      [(expr_without_new) $1])
 
      (new_expr
       [(NEW class_name_reference ctor_arguments) (NewExpr $1-start-pos $3-end-pos $2 $3)])
@@ -909,11 +905,6 @@ ELLIPSIS))
       [(class_constant) $1]
       [(fully_qualified_class_name) $1]
       [(common_scalar) $1]
-      ;;'"' encaps_list '"' we don't treat encapsed variable in php
-      ;;string, adding a D_QUOTE_STRING will produce reduce/reduce
-      ;;conflicts
-
-      ;;T_START_HEREDOC encaps_list T_END_HEREDOC
       [(HEREDOC) (HeredocLiteral $1-start-pos $1-end-pos $1)]
       [(CLASS_C) (Literal $1-start-pos $1-end-pos 'CLASS_C)])
 
@@ -933,7 +924,8 @@ ELLIPSIS))
 
      (expr
       [(r_variable) $1]
-      [(expr_without_variable) $1])
+      [(new_expr) $1]
+      [(expr_without_new) $1])
 
      (method_or_not
       [(method) (list (ChainCall $1-start-pos $1-end-pos $1))]
@@ -1022,8 +1014,7 @@ ELLIPSIS))
       [(variable) $1])
 
      (function_call_parameter
-      [(expr_without_variable) (FunctionCallParameter $1-start-pos $1-end-pos $1 #f)]
-      [(variable) (FunctionCallParameter $1-start-pos $1-end-pos $1 #f)]
+      [(expr) (FunctionCallParameter $1-start-pos $1-end-pos $1 #f)]
       [(AMPERSTAND w_variable)
        (FunctionCallParameter $1-start-pos $2-end-pos (AddrVariable $1-start-pos $2-end-pos $2) #f)])
 
@@ -1123,9 +1114,9 @@ ELLIPSIS))
       [() #f])
 
      (parameter_dcl
-      [(optional_class_type is_reference is_variadic VARIABLE)
+      [(optional_type_hint is_reference is_variadic VARIABLE)
        (ParameterDcl $1-start-pos $2-end-pos $1 $4 $2 $3 #f)]
-      [(optional_class_type is_reference is_variadic VARIABLE ASSIGN static_scalar)
+      [(optional_type_hint is_reference is_variadic VARIABLE ASSIGN static_scalar)
        (ParameterDcl $1-start-pos $5-end-pos $1 $4 $2 $3 $6)])
 
      (non_empty_parameter_list
@@ -1133,10 +1124,15 @@ ELLIPSIS))
       [(non_empty_parameter_list COMMA parameter_dcl)
        (append $1 (list $3))])
 
-     (optional_class_type
+     (optional_type_hint
       [() #f]
       [(ARRAY) 'ARRAY]
       [(CALLABLE) 'CALLABLE]
+      [(INT_HINT) 'INT]
+      [(FLOAT_HINT) 'FLOAT]
+      [(BOOL_HINT) 'BOOL]
+      [(STRING_HINT) 'STRING]
+      [(SELF_HINT) 'SELF]
       [(fully_qualified_class_name) $1])
 
      (constant_declaration
@@ -1185,6 +1181,7 @@ ELLIPSIS))
                             class_statement_list CBRACE)
        (InterfaceDcl $1-start-pos $7-end-pos $1 $3 $4 $6)])
 
+     ;; TODO: Make Trait it's on type
      (class_entry_type
       [(CLASS) '()]
       [(ABSTRACT CLASS) '(ABSTRACT)]
@@ -1350,24 +1347,20 @@ ELLIPSIS))
       [(FOR OPAREN for_expr SEMICOLON  for_expr SEMICOLON for_expr CPAREN for_statement)
        (ForLoop $1-start-pos $9-end-pos $3 $5 $7 $9)]
       [(SWITCH OPAREN expr CPAREN	switch_case_list) (Switch $1-start-pos $5-end-pos $3 $5)]
-      [(FOREACH OPAREN variable AS foreach_variable foreach_optional_arg CPAREN foreach_statement)
-       (ForEachLoop $1-start-pos $8-end-pos $3 $5 $6 $8)]
-      [(FOREACH OPAREN expr_without_variable AS variable foreach_optional_arg CPAREN foreach_statement)
+      [(FOREACH OPAREN expr AS foreach_variable foreach_optional_arg CPAREN foreach_statement)
        (ForEachLoop $1-start-pos $8-end-pos $3 $5 $6 $8)]
       [(BREAK SEMICOLON) (BreakStmt $1-start-pos $2-end-pos #f)]
       [(BREAK expr SEMICOLON) (BreakStmt $1-start-pos $3-end-pos $2)]
       [(CONTINUE SEMICOLON) (ContinueStmt $1-start-pos $2-end-pos #f)]
       [(CONTINUE expr SEMICOLON) (ContinueStmt $1-start-pos $3-end-pos $2)]
       [(RETURN SEMICOLON) (ReturnStmt $1-start-pos $2-end-pos #f)]
-      [(RETURN expr_without_variable SEMICOLON) (ReturnStmt $1-start-pos $3-end-pos $2)]
-      [(RETURN variable SEMICOLON) (ReturnStmt $1-start-pos $3-end-pos $2)]
+      [(RETURN expr SEMICOLON) (ReturnStmt $1-start-pos $3-end-pos $2)]
       [(TRY OBRACE inner_statement_list CBRACE catch_statement finally_statement)
        (TryStmt $1-start-pos $6-end-pos $3 $5 $6)]
 
       [(THROW expr SEMICOLON) (ThrowStmt $1-start-pos $3-end-pos $2)]
       [(ECHO echo_expr_list SEMICOLON) (EchoStmt $1-start-pos $3-end-pos $2)]
       ;; T_INLINE_HTML
-      [(yield_expr SEMICOLON) (ExprStmt $1-start-pos $2-end-pos $1)]
       [(GLOBAL global_var_list SEMICOLON) (GlobalStmt $1-start-pos $3-end-pos $2)]
       [(STATIC static_var_list SEMICOLON) (StaticStmt $1-start-pos $3-end-pos $2)]
       [(UNSET OPAREN unset_variables CPAREN SEMICOLON) (UnsetStmt $1-start-pos $5-end-pos $3)]
@@ -1540,7 +1533,7 @@ ELLIPSIS))
       [(BOOL_FALSE) (Literal $1-start-pos $1-end-pos 'BOOL_FALSE)]
       [(INTEGER) (Literal $1-start-pos $1-end-pos $1)]
       [(FLOAT) (Literal $1-start-pos $1-end-pos $1)]
-      ;; | T_CONSTANT_ENCAPSED_STRING
+      ;; TODO: official parser have this T_CONSTANT_ENCAPSED_STRING
       [(D_QUOTE_STRING) (DQStringLiteral $1-start-pos $1-end-pos $1)] ;; use this instead of constant encapsed string
       [(QUOTE_STRING) (StringLiteral $1-start-pos $1-end-pos $1)]
       [(LINE) (Literal $1-start-pos $1-end-pos 'LINE)]
@@ -1549,12 +1542,7 @@ ELLIPSIS))
       [(TRAIT_C) (Literal $1-start-pos $1-end-pos 'TRAIT)]
       [(METHOD_C) (Literal $1-start-pos $1-end-pos 'METHOD_C)]
       [(FUNC_C) (Literal $1-start-pos $1-end-pos 'FUNC_C)]
-      [(NS_C) (Literal $1-start-pos $1-end-pos 'NS_C)]
-      ;; | T_START_HEREDOC T_ENCAPSED_AND_WHITESPACE T_END_HEREDOC
-      ;; | T_START_HEREDOC T_END_HEREDOC
-      [(HEREDOC) (HeredocLiteral $1-start-pos $1-end-pos $1)]
-      ;;conflicts with scalar rule
-      )
+      [(NS_C) (Literal $1-start-pos $1-end-pos 'NS_C)])
 
 
      (class_name
@@ -1870,3 +1858,7 @@ ELLIPSIS))
 
   (let ([ast (parse-expr "$a instanceOf \\Exception;")])
     (check-pred InstanceOfExpr? ast)))
+
+;; TODO: should not be valid: <?php namespace \toto;
+;; TODO: Add constant expression http://php.net/manual/en/migration56.new-features.php#migration56.new-features.const-scalar-exprs
+;; TODO: php7: http://php.net/manual/en/migration70.new-features.php expect scalar type hint
