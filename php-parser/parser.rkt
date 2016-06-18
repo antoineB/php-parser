@@ -146,7 +146,7 @@ ELLIPSIS))
 ;; Regex that match the the begining of class|function|property|method. This is
 ;; used to check during the lexing if a comment can be used to document.
 (define doc-comment-regex
-  #rx"^(\n|\t| |\r)*(public|protected|private|static|abstract|final|var|function|class|interface|const)")
+  #rx"^(\n|\t| |\r)*(public|protected|private|static|abstract|final|var|function|class|interface|const|trait)")
 
 (define (usefull-doc-comment? input-port)
   (regexp-match-peek doc-comment-regex
@@ -631,6 +631,7 @@ ELLIPSIS))
      (left ELSE)
      (left ENDIF))
 
+
     (grammar
 
      (binary_bit_expr
@@ -819,11 +820,11 @@ ELLIPSIS))
       [(expr_without_new) $1])
 
      (anonymous_class
-      [(class_entry_type ctor_arguments class_def_part)
+      [(CLASS ctor_arguments class_def_part)
        ;; no documentation
        (cons
         $2
-        (ClassAnonymousDcl #f $1-start-pos $3-end-pos $1 (vector-ref $3 0) (vector-ref $3 1) (vector-ref $3 2)))])
+        (ClassAnonymousDcl $1-start-pos $3-end-pos #f (vector-ref $3 0) (vector-ref $3 1) (vector-ref $3 2)))])
 
      (new_expr
       [(NEW anonymous_class) (NewExpr $1-start-pos $2-end-pos (cdr $2) (car $2))]
@@ -1185,7 +1186,7 @@ ELLIPSIS))
       [(empty_documentation class_entry_type IDENT class_def_part)
        (ClassDcl $2-start-pos $4-end-pos $1 $2 $3 (vector-ref $4 0) (vector-ref $4 1) (vector-ref $4 2))]
       [(empty_documentation TRAIT IDENT OBRACE class_statement_list CBRACE)
-       (TraitDcl $2-start-pos $6-end-pos $3 $5)]
+       (TraitDcl $2-start-pos $6-end-pos $1 $3 $5)]
       [(empty_documentation INTERFACE IDENT interface_extends_list OBRACE
                             class_statement_list CBRACE)
        (InterfaceDcl $1-start-pos $7-end-pos $1 $3 $4 $6)])
@@ -1720,18 +1721,17 @@ ELLIPSIS))
            (MethodDcl-reference x))))
 
 (struct ClassAnonymousDcl Position
-  (documentation modifiers extend implements body)
+  (documentation extend implements body)
   #:transparent
   #:property prop:sub-ast
   (lambda (x)
     (list
-     (ClassAnonymousDcl-modifiers x)
      (ClassAnonymousDcl-extend x)
      (ClassAnonymousDcl-implements x)
      (ClassAnonymousDcl-body x))))
 
 (struct TraitDcl Position
-  (name body)
+  (documentation name body)
   #:transparent
   #:property prop:sub-ast
   (lambda (x) (list
