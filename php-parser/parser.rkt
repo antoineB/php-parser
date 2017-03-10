@@ -113,7 +113,7 @@
 (define-lex-abbrevs
  (lower-letter (:/ "a" "z"))
  (upper-letter (:/ #\A #\Z))
- (blanks (:or #\space #\tab "\r"))
+ (blanks (:or #\space #\tab #\return #\page))
  (newline #\newline)
  (digit (:/ "0" "9"))
  (symbol-regex (:: (:or lower-letter upper-letter #\_)
@@ -140,13 +140,13 @@ BOOL_TRUE BOOL_FALSE
 ELLIPSIS))
 
 (define-tokens value-tokens
-  (HEREDOC VARIABLE IDENT INTEGER FLOAT QUOTE_STRING D_QUOTE_STRING BACKQUOTE_STRING DOCUMENTATION LINE_COMMENT COMMENT BLANKS NEWLINES))
+  (HEREDOC VARIABLE IDENT INTEGER FLOAT QUOTE_STRING D_QUOTE_STRING BACKQUOTE_STRING DOCUMENTATION LINE_COMMENT COMMENT BLANKS NEWLINES TEXT))
 
 
 ;; Regex that match the the begining of class|function|property|method. This is
 ;; used to check during the lexing if a comment can be used to document.
 (define doc-comment-regex
-  #rx"^(\n|\t| |\r)*(public|protected|private|static|abstract|final|var|function|class|interface|const|trait)")
+  #rx"^(\n|\t| |\r|\f)*(public|protected|private|static|abstract|final|var|function|class|interface|const|trait)")
 
 (define (usefull-doc-comment? input-port)
   (regexp-match-peek doc-comment-regex
@@ -236,10 +236,10 @@ ELLIPSIS))
    [(ignore-case "continue") 'CONTINUE]
    [(ignore-case "goto") 'GOTO]
    [(ignore-case "function") (begin
-                               (lexer-no-keyword 'one)
+                               (current-lexer 'php-one-keyword)
                                'FUNCTION)]
    [(ignore-case "const") (begin
-                            (lexer-no-keyword 'one)
+                            (current-lexer 'php-one-keyword)
                             'CONST)]
    [(ignore-case "return") 'RETURN]
    [(ignore-case "try") 'TRY]
@@ -260,16 +260,16 @@ ELLIPSIS))
    [(ignore-case "isset") 'ISSET]
    [(ignore-case "empty") 'EMPTY]
    [(ignore-case "class") (begin
-                            (lexer-no-keyword 'one)
+                            (current-lexer 'php-one-keyword)
                             'CLASS)]
    [(ignore-case "trait") (begin
-                            (lexer-no-keyword 'one)
+                            (current-lexer 'php-one-keyword)
                             'TRAIT)]
    [(ignore-case "interface") (begin
-                                (lexer-no-keyword 'comma)
+                                (current-lexer 'php-comma-keyword)
                                 'INTERFACE)]
    [(ignore-case "extends") (begin
-                              (lexer-no-keyword 'one)
+                              (current-lexer 'php-one-keyword)
                               'EXTENDS)]
    [(ignore-case "include") 'INCLUDE]
    [(ignore-case "include_once") 'INCLUDE_ONCE]
@@ -335,7 +335,7 @@ ELLIPSIS))
    ["(unset)" 'UNSET_CAST]
    ["__NAMESPACE__" 'NS_C]
    ["->" (begin
-           (lexer-no-keyword 'one)
+           (current-lexer 'php-one-keyword)
            'OBJECT_OPERATOR)]
    ["=>" 'DOUBLE_ARROW]
    ["__CLASS__" 'CLASS_C]
@@ -347,13 +347,16 @@ ELLIPSIS))
    ["__DIR__" 'DIR]
    ["__halt_compiler" 'HALT_COMPILER]
 
-   [(:: "<?php" (:or #\space #\tab #\newline)) 'OPEN_TAG]
+   ;; [(:: "<?" (:or #\space #\tab #\newline #\return #\page)) 'OPEN_TAG]
+   [(:: "<?php" (:or #\space #\tab #\newline #\return #\page)) 'OPEN_TAG]
    ["<?=" 'OPEN_TAG_WITH_ECHO]
-   ["?>" 'CLOSE_TAG]
+   ["?>" (begin
+           (current-lexer 'text)
+           'CLOSE_TAG)]
 ;;   ["${" 'DOLLAR_OPEN_CURLY_BRACES]
 ;;   ["{$" 'CURLY_OPEN]
    ["::" (begin
-           (lexer-no-keyword 'one)
+           (current-lexer 'php-one-keyword)
            'PAAMAYIM_NEKUDOTAYIM)]
    ["\\" 'NS_SEPARATOR]
 
@@ -414,6 +417,37 @@ ELLIPSIS))
    [(eof) 'EOF]
    ))
 
+
+(define (php-lexer-text input-port)
+  (define (read-until-open data)
+    (define peek/c (peek-char input-port))
+    (cond [(eof-object? peek/c)
+           (read-char input-port)
+           data]
+          ;; le $ est correcte
+          [(or (regexp-match-peek #rx"^<\\?php([ \r\n\t\f]|$)" input-port)
+               (regexp-match-peek #rx"^<\\?=" input-port)
+               (regexp-match-peek #rx"^<\\?([ \r\n\t\f]|$)" input-port))
+           data]
+          #;[(and (char=? peek/c #\<)
+                ;; TODO: take care about encoding?
+                (char=? (peek-char input-port 1) #\?))
+           data]
+          [else
+           (write-char (read-char input-port) data)
+           (read-until-open data)]))
+
+  ;; peut être besoin d'ajouter le comptage des lignes,columns
+  (define start-pos (let-values ([(line col offset) (port-next-location input-port)])
+                      (make-position offset (or line 1) (or col 0))))
+  (define data (let ([data (read-until-open (open-output-string))])
+                 (close-output-port data)
+                 (get-output-string data)))
+  (define end-pos (let-values ([(line col offset) (port-next-location input-port)])
+                    (make-position offset (or line 1) (or col 0))))
+  (if (string=? data "")
+      #f
+      (position-token (token-TEXT data) start-pos end-pos)))
 
 ;; This lexer forbid the use of php keywords, this is needed to permit the lexe
 ;; of something like "->while" as "->" and "while" where "while" is not lexed as
@@ -479,7 +513,7 @@ ELLIPSIS))
    ["(unset)" 'UNSET_CAST]
    ["__NAMESPACE__" 'NS_C]
    ["->" (begin
-           (lexer-no-keyword #t)
+           (current-lexer 'php)
            'OBJECT_OPERATOR)]
    ["=>" 'DOUBLE_ARROW]
 ;;   ["__CLASS__" 'CLASS_C] some people use $this->__CLASS__
@@ -491,9 +525,14 @@ ELLIPSIS))
    ["__DIR__" 'DIR]
    ["__halt_compiler" 'HALT_COMPILER]
 
-   [(:: "<?php" (:or #\space #\tab #\newline)) 'OPEN_TAG]
+   ;; [(:: "<?" (:or #\space #\tab #\newline #\return #\page)) 'OPEN_TAG]
+   [(:: "<?php" (:or #\space #\tab #\newline #\return #\page)) 'OPEN_TAG]
+
    ["<?=" 'OPEN_TAG_WITH_ECHO]
-   ["?>" 'CLOSE_TAG]
+   ["?>"
+    (begin
+           (current-lexer 'text)
+           'CLOSE_TAG)]
 ;;   ["${" 'DOLLAR_OPEN_CURLY_BRACES]
 ;;   ["{$" 'CURLY_OPEN]
    ["::" 'PAAMAYIM_NEKUDOTAYIM]
@@ -557,25 +596,44 @@ ELLIPSIS))
    [(eof) 'EOF]
    ))
 
-(define lexer-no-keyword (make-parameter #f))
+(define current-lexer (make-parameter 'text))
+
+(define pending-token #f)
 
 (define (php-lexer input-port)
-  (case (lexer-no-keyword)
-    [(one)
-     (let ([token (php-lexer-without-keywords input-port)])
-       (case (token-name (position-token-token token))
-         [(BLANKS) (void)]
-         [else (lexer-no-keyword #f)])
-       token)]
-    [(comma)
-     (if (regexp-match-peek #rx"^ *(?i:extends )" input-port)
-         (php-lexer-with-keywords input-port)
-         (let ([token (php-lexer-without-keywords input-port)])
-           (case (token-name (position-token-token token))
-             [(COMMA IDENT BLANKS) (void)]
-             [else (lexer-no-keyword #f)])
-           token))]
-    [else (php-lexer-with-keywords input-port)]))
+  (if pending-token
+      (begin0 pending-token (set! pending-token #f))
+      (let ([token (case (current-lexer)
+                     [(php-one-keyword)
+                      (let ([token (php-lexer-without-keywords input-port)])
+                        (case (token-name (position-token-token token))
+                          [(BLANKS) (void)]
+                          [else (current-lexer 'php)])
+                        token)]
+                     [(php-comma-keyword)
+                      (if (regexp-match-peek #rx"^ *(?i:extends )" input-port)
+                          (php-lexer-with-keywords input-port)
+                          (let ([token (php-lexer-without-keywords input-port)])
+                            (case (token-name (position-token-token token))
+                              [(COMMA IDENT BLANKS) (void)]
+                              [else (current-lexer 'php)])
+                            token))]
+                     [(php) (php-lexer-with-keywords input-port)]
+                     [(text)
+                      (define tokena (php-lexer-text input-port))
+                      (current-lexer 'php)
+                      (or tokena (php-lexer input-port))])])
+        (case (token-name (position-token-token token))
+          [(OPEN_TAG_WITH_ECHO) (set! pending-token
+                                  (position-token (token-ECHO)
+                                                  (position-token-start-pos token)
+                                                  (position-token-end-pos token)))]
+          [(CLOSE_TAG)
+           (set! pending-token
+             (position-token (token-SEMICOLON)
+                             (position-token-start-pos token)
+                             (position-token-end-pos token)))])
+        token)))
 
 ;; It didn't probably parse all php constructs.
 (define-values (php-parser php-expr-parser)
@@ -1064,8 +1122,7 @@ ELLIPSIS))
       [(YIELD expr DOUBLE_ARROW expr) (Yield $1-start-pos $4-end-pos  $2 $4)])
 
      (program
-      [(OPEN_TAG top_statement_list CLOSE_TAG) $2]
-      [(OPEN_TAG top_statement_list) $2]
+      [(top_statement_list) $1]
       [() '()])
 
      (top_statement_list
@@ -1790,14 +1847,14 @@ ELLIPSIS))
 
 (define (useless-token? token)
   (define name (token-name (position-token-token token)))
-  (or (equal? 'LINE_COMMENT name)
-      (equal? 'BLANKS name)
-      (equal? 'NEWLINES name)
-      (equal? 'COMMENT name)))
+  (case name
+    [(LINE_COMMENT BLANKS NEWLINES COMMENT TEXT OPEN_TAG CLOSE_TAG OPEN_TAG_WITH_ECHO) #t]
+    [else #f]))
 
  (define (php-lexe input-port)
    (when (not (port-counts-lines? input-port))
-    (port-count-lines! input-port))
+     (port-count-lines! input-port))
+   (current-lexer 'text)
    (reverse
     (let loop ([tokens '()])
       (let ([tok (php-lexer input-port)])
@@ -1808,13 +1865,10 @@ ELLIPSIS))
 (define (php-parse input-port)
   (when (not (port-counts-lines? input-port))
     (port-count-lines! input-port))
+  (current-lexer 'text)
   (define (token-loop)
-    (let* ([tok (php-lexer input-port)]
-           [name (token-name (position-token-token tok))])
-      (if (or (equal? 'LINE_COMMENT name)
-              (equal? 'BLANKS name)
-              (equal? 'NEWLINES name)
-              (equal? 'COMMENT name))
+    (let ([tok (php-lexer input-port)])
+      (if (useless-token? tok)
           (token-loop)
           tok)))
   (php-parser token-loop))
