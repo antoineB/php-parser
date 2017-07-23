@@ -1,7 +1,5 @@
 #lang racket
 
-;; Parse a plain php file.
-
 (require  "parser-utils.rkt"
           parser-tools/yacc
           parser-tools/lex
@@ -32,6 +30,7 @@
          (struct-out ShortArray)
          (struct-out InstanceOfExpr)
          (struct-out TestExpr)
+         (struct-out CoalesceExpr)
          (struct-out PrintExpr)
          (struct-out AtExpr)
          (struct-out Binary)
@@ -73,6 +72,7 @@
          (struct-out LambdaDcl)
          (struct-out MethodDcl)
          (struct-out ParameterDcl)
+         (struct-out TypeHint)
          (struct-out ClassDcl)
          (struct-out ClassAnonymousDcl)
          (struct-out TraitDcl)
@@ -107,7 +107,8 @@
          (struct-out Literal)
          (struct-out HeredocLiteral)
          (struct-out DQStringLiteral)
-         (struct-out StringLiteral))
+         (struct-out StringLiteral)
+         (struct-out GroupUseDeclaration))
 
 
 (define-lex-abbrevs
@@ -136,8 +137,7 @@ NAMESPACE NS_C DIR OPEN_TAG DOLLAR_OPEN_CURLY_BRACES DOLLAR OPEN_TAG_WITH_ECHO
 CLOSE_TAG CURLY_OPEN PAAMAYIM_NEKUDOTAYIM NS_SEPARATOR
 SEMICOLON COLON NEG BAR HAT AMPERSTAND COMMA DOT PLUS MINUS DIV MULT MOD TILD AT EXPO
 QUESTION ASSIGN SMALLER GREATER LOW_PRIORITY_RULE HALT_COMPILER
-BOOL_TRUE BOOL_FALSE
-ELLIPSIS))
+BOOL_TRUE BOOL_FALSE ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
 
 (define-tokens value-tokens
   (HEREDOC VARIABLE IDENT INTEGER FLOAT QUOTE_STRING D_QUOTE_STRING BACKQUOTE_STRING DOCUMENTATION LINE_COMMENT COMMENT BLANKS NEWLINES TEXT))
@@ -281,6 +281,7 @@ ELLIPSIS))
    [(ignore-case "and") 'LOGICAL_AND]
    [(ignore-case "print") 'PRINT]
    [(ignore-case "yield") 'YIELD]
+   [(:: (ignore-case "yield") (:+ blanks) (ignore-case "FROM")) 'YIELD_FROM]
    [(ignore-case "instanceof") 'INSTANCEOF]
    [(ignore-case "implements") 'IMPLEMENTS]
    [(ignore-case "list") 'LIST]
@@ -290,6 +291,7 @@ ELLIPSIS))
    [(ignore-case "true") 'BOOL_TRUE]
    [(ignore-case "false") 'BOOL_FALSE]
 
+   ["<=>" 'SPACESHIP]
    ["+=" 'PLUS_EQUAL]
    ["-=" 'MINUS_EQUAL]
    ["**=" 'EXPO_EQUAL]
@@ -405,6 +407,7 @@ ELLIPSIS))
    [#\< 'SMALLER]
    [#\> 'GREATER]
    [#\? 'QUESTION]
+   ["??" 'COALESCE]
    [#\@ 'AT]
    [#\{ 'OBRACE]
    [#\} 'CBRACE]
@@ -469,6 +472,7 @@ ELLIPSIS))
    ["<<<" (let ([str (get-heredoc-token input-port)])
             (token-HEREDOC (string-append "<<<" str)))]
 
+   ["<=>" 'SPACESHIP]
    ["+=" 'PLUS_EQUAL]
    ["-=" 'MINUS_EQUAL]
    ["**=" 'EXPO_EQUAL]
@@ -584,6 +588,7 @@ ELLIPSIS))
    [#\< 'SMALLER]
    [#\> 'GREATER]
    [#\? 'QUESTION]
+   ["??" 'COALESCE]
    [#\@ 'AT]
    [#\{ 'OBRACE]
    [#\} 'CBRACE]
@@ -659,19 +664,21 @@ ELLIPSIS))
      (left LOGICAL_AND)
      (right PRINT)
      (right YIELD)
+     (right YIELD_FROM)
      (right DOUBLE_ARROW)
      (left ASSIGN PLUS_EQUAL MINUS_EQUAL MULT_EQUAL DIV_EQUAL
            CONCAT_EQUAL MOD_EQUAL AND_EQUAL OR_EQUAL XOR_EQUAL SL_EQUAL SR_EQUAL
            EXPO_EQUAL)
 
      (left QUESTION COLON)
+     (right COALESCE)
      (left BOOLEAN_OR)
      (left BOOLEAN_AND)
      (left BAR)
      (left HAT)
      (left AMPERSTAND)
 
-     (nonassoc IS_EQUAL IS_NOT_EQUAL IS_IDENTICAL IS_NOT_IDENTICAL)
+     (nonassoc IS_EQUAL IS_NOT_EQUAL IS_IDENTICAL IS_NOT_IDENTICAL SPACESHIP)
      (nonassoc SMALLER IS_SMALLER_OR_EQUAL GREATER IS_GREATER_OR_EQUAL)
 
      (left SL SR)
@@ -712,7 +719,8 @@ ELLIPSIS))
       [(expr SMALLER        expr) (Binary $1-start-pos $3-end-pos 'SMALLER $1 $3)]
       [(expr IS_SMALLER_OR_EQUAL expr) (Binary $1-start-pos $3-end-pos 'IS_SMALLER_OR_EQUAL $1 $3)]
       [(expr GREATER expr) (Binary $1-start-pos $3-end-pos 'GREATER $1 $3)]
-      [(expr IS_GREATER_OR_EQUAL expr) (Binary $1-start-pos $3-end-pos 'IS_GREATER_OR_EQUAL $1 $3)])
+      [(expr IS_GREATER_OR_EQUAL expr) (Binary $1-start-pos $3-end-pos 'IS_GREATER_OR_EQUAL $1 $3)]
+      [(expr SPACESHIP expr) (Binary  $1-start-pos $3-end-pos 'SPACESHIP $1 $3)])
 
      (binary_op_expr
       [(expr PLUS expr) (prec INC) (Binary $1-start-pos $3-end-pos 'PLUS $1 $3)]
@@ -798,6 +806,7 @@ ELLIPSIS))
        (InstanceOfExpr $1-start-pos $3-end-pos $1 $3)]
       [(expr QUESTION expr COLON expr) (TestExpr $1-start-pos $5-end-pos $1 $3 $5)]
       [(expr QUESTION COLON expr) (TestExpr $1-start-pos $4-end-pos $1 #f $4)]
+      [(expr COALESCE expr) (CoalesceExpr $1-start-pos $3-end-pos $1 $3)]
       [(EXIT exit_expr) (Exit $1-start-pos $2-end-pos $2)]
       [(AT expr) (AtExpr $1-start-pos $2-end-pos $2)]
       [(PRINT expr) (PrintExpr $1-start-pos $2-end-pos $2)]
@@ -844,10 +853,9 @@ ELLIPSIS))
 
      (optional_return_type
       [() #f]
-      [(COLON type_hint)
-       (match $2
-         [(NamespaceName _ _ #f '("void") _) 'VOID]
-         [else $2])])
+      [(COLON type_hint) (TypeHint $1-start-pos $2-end-pos $2 #f)]
+      [(COLON QUESTION type_hint)
+       (TypeHint $1-start-pos $3-end-pos $3 #t)])
 
      (lambda_expr
       [(empty_documentation FUNCTION OPAREN parameter_list CPAREN lexical_vars optional_return_type OBRACE
@@ -1119,11 +1127,11 @@ ELLIPSIS))
 
      (yield_expr
       [(YIELD expr) (Yield $1-start-pos $2-end-pos $2 #f)]
-      [(YIELD expr DOUBLE_ARROW expr) (Yield $1-start-pos $4-end-pos  $2 $4)])
+      [(YIELD expr DOUBLE_ARROW expr) (Yield $1-start-pos $4-end-pos  $2 $4)]
+      [(YIELD_FROM expr) (YieldFrom $1-start-pos $2-end-pos $2)])
 
      (program
-      [(top_statement_list) $1]
-      [() '()])
+      [(top_statement_list) $1])
 
      (top_statement_list
       [() '()]
@@ -1183,13 +1191,16 @@ ELLIPSIS))
 
      (optional_type_hint
       [() #f]
-      [(type_hint) $1])
+      [(type_hint) (TypeHint $1-start-pos $1-end-pos $1 #f)]
+      [(QUESTION type_hint)
+       (TypeHint $1-start-pos $2-end-pos $2 #t)])
 
      (type_hint
       [(ARRAY) 'ARRAY]
       [(CALLABLE) 'CALLABLE]
       [(fully_qualified_class_name)
        (match $1
+         [(NamespaceName _ _ #f '("void") _) 'VOID]
          [(NamespaceName _ _ #f '("int") _) 'INT]
          [(NamespaceName _ _ #f '("float") _) 'FLOAT]
          [(NamespaceName _ _ #f '("bool") _) 'BOOL]
@@ -1206,26 +1217,45 @@ ELLIPSIS))
                   (list (ConstDcl $1-start-pos $5-end-pos $1 $3 $5)))])
 
      (use_declarations
-      [(use_declarations COMMA use_declaration) (append $1 (list $3))]
-      [(use_declaration) (list $1)])
+      [(use_declarations COMMA use_declaration_with_group) (append $1 (list $3))]
+      [(use_declaration_with_group) (list $1)])
 
+     (use_declarations_with_type
+      [(use_declarations_with_type COMMA use_declaration) (append $1 (list $3))]
+      [(use_declaration) (list $1)]
+      [(use_declarations_with_type COMMA FUNCTION use_declaration) (append $1 (list (change-use-declaration-type $4 'function)))]
+      [(FUNCTION use_declaration) (list (change-use-declaration-type $2 'function))]
+      [(use_declarations_with_type COMMA CONST use_declaration) (append $1 (list (change-use-declaration-type $4 'const)))]
+      [(CONST use_declaration) (list (change-use-declaration-type $2 'const))])
+
+     (use_declaration_with_group
+      [(namespace_name NS_SEPARATOR OBRACE use_declarations_with_type CBRACE)
+       (GroupUseDeclaration $1-start-pos $5-end-pos (NamespaceName $1-start-pos $1-end-pos #f $1) $4)]
+      [(NS_SEPARATOR namespace_name NS_SEPARATOR OBRACE use_declarations_with_type CBRACE)
+       (GroupUseDeclaration  $1-start-pos $6-end-pos (NamespaceName $2-start-pos $2-end-pos #t $2) $5)]
+      [(use_declaration) $1])
 
      (use_declaration
       [(namespace_name) (UseDeclaration $1-start-pos $1-end-pos
                                         (NamespaceName $1-start-pos $1-end-pos #f $1)
+                                        #f
                                         #f)]
       [(namespace_name AS IDENT)
        (UseDeclaration $1-start-pos $3-end-pos
                        (NamespaceName $1-start-pos $1-end-pos #f $1)
-                       $3)]
+                       $3
+                       #f)]
       [(NS_SEPARATOR namespace_name)
        (UseDeclaration $1-start-pos $2-end-pos
                        (NamespaceName $1-start-pos $2-end-pos #t $2)
+                       #f
                        #f)]
       [(NS_SEPARATOR namespace_name AS IDENT)
        (UseDeclaration $1-start-pos $3-end-pos
                        (NamespaceName $1-start-pos $2-end-pos #t $2)
-                       $4)])
+                       $4
+                       #f)]
+      )
 
 
      (class_declaration_statement
@@ -1631,6 +1661,9 @@ ELLIPSIS))
                      [(namespace_name NS_SEPARATOR IDENT)
                       (append $1 (list $3))])))))
 
+(define (change-use-declaration-type use-declaration ttype)
+  (struct-copy UseDeclaration use-declaration
+                 [type ttype]))
 
 (ast-struct NamespaceName Position (global name)
             #:transparent)
@@ -1671,11 +1704,13 @@ ELLIPSIS))
 (ast-struct Cast Position (to expr) #:transparent)
 (ast-struct Assign Position (op left right) #:transparent)
 (ast-struct Yield Position (expr alias) #:transparent)
+(ast-struct YieldFrom Position (expr) #:transparent)
 (ast-struct Exit Position (expr) #:transparent)
 (ast-struct Clone Position (expr) #:transparent)
 (ast-struct NewExpr Position (class parameters) #:transparent)
 (ast-struct InstanceOfExpr Position (left right) #:transparent)
 (ast-struct TestExpr Position (test then else) #:transparent)
+(ast-struct CoalesceExpr Position (left right) #:transparent)
 (ast-struct PrintExpr Position (expr) #:transparent)
 (ast-struct AtExpr Position (expr) #:transparent)
 (ast-struct FunctionCall Position (expr args) #:transparent)
@@ -1683,7 +1718,9 @@ ELLIPSIS))
 (ast-struct EvalExpr Position (expr) #:transparent)
 
 ;; ---- DEDICATED EXPRS ----
-(ast-struct UseDeclaration Position (name alias) #:transparent)
+(ast-struct TypeHint Position (type nullable) #:transparent)
+(ast-struct GroupUseDeclaration Position (name uses) #:transparent)
+(ast-struct UseDeclaration Position (name alias type) #:transparent)
 (struct ParameterDcl Position (type name reference variadic default)
         #:transparent
         #:property prop:sub-ast
@@ -1918,7 +1955,7 @@ ELLIPSIS))
     (check-pred FunctionDcl? ast)
     (match-let ([(list a b c) (FunctionDcl-args ast)])
       (check-equal? (ParameterDcl-name a) "$a")
-      (check-equal? (NamespaceName-name (ParameterDcl-type b)) '("Abc"))
+      (check-equal? (NamespaceName-name (TypeHint-type (ParameterDcl-type b))) '("Abc"))
       (check-pred Array? (ParameterDcl-default c))
       (check-equal? (Array-exprs (ParameterDcl-default c)) empty)))
 
@@ -1940,8 +1977,8 @@ ELLIPSIS))
     (check-pred InstanceOfExpr? ast))
 
   (let ([ast (parse-string "<?php function test_scalar(int $p) : string { return 12; }")])
-    (check-equal? (FunctionDcl-return-type (first ast)) 'STRING)
-    (check-equal? (ParameterDcl-type (first (FunctionDcl-args (first ast)))) 'INT))
+    (check-equal? (TypeHint-type (FunctionDcl-return-type (first ast))) 'STRING)
+    (check-equal? (TypeHint-type (ParameterDcl-type (first (FunctionDcl-args (first ast))))) 'INT))
 
   (let ([ast (parse-expr "new class(12) { };")])
     (check-true (ClassAnonymousDcl? (NewExpr-class ast)))))
