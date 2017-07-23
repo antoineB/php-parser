@@ -1493,7 +1493,7 @@ BOOL_TRUE BOOL_FALSE ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
 
      (catch_statement
       [() '()]
-      [(CATCH OPAREN fully_qualified_class_name VARIABLE CPAREN
+      [(CATCH OPAREN fully_qualified_class_name_catch VARIABLE CPAREN
               OBRACE inner_statement_list CBRACE additional_catches)
        (list* (CatchStmt $1-start-pos $9-end-pos $3 $4 $7) $9)])
 
@@ -1512,8 +1512,13 @@ BOOL_TRUE BOOL_FALSE ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
       [(non_empty_additional_catches additional_catch)
        (append $1 (list $2))])
 
+     (fully_qualified_class_name_catch
+      [(fully_qualified_class_name) (list $1)]
+      [(fully_qualified_class_name_catch BAR fully_qualified_class_name)
+       (append $1 (list $3))])
+
      (additional_catch
-      [(CATCH OPAREN fully_qualified_class_name VARIABLE CPAREN
+      [(CATCH OPAREN fully_qualified_class_name_catch VARIABLE CPAREN
               OBRACE inner_statement_list CBRACE)
        (CatchStmt $1-start-pos $8-end-pos $3 $4 $7)])
 
@@ -1754,7 +1759,7 @@ BOOL_TRUE BOOL_FALSE ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
 (ast-struct TraitStmt Position (list adapter) #:transparent)
 (ast-struct TryStmt Position (stmts catchs finally) #:transparent)
 (ast-struct FinallyStmt Position (stmts) #:transparent)
-(ast-struct CatchStmt Position (exception variable statement) #:transparent)
+(ast-struct CatchStmt Position (exceptions variable statement) #:transparent)
 (ast-struct ThrowStmt Position (expr) #:transparent)
 (ast-struct BreakStmt Position (label) #:transparent)
 (ast-struct ContinueStmt Position (label) #:transparent)
