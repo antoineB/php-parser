@@ -1192,6 +1192,7 @@ BOOL_TRUE BOOL_FALSE ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
       [(CALLABLE) 'CALLABLE]
       [(fully_qualified_class_name)
        (match $1
+         [(NamespaceName _ _ #f '("iterable") _) 'ITERABLE]
          [(NamespaceName _ _ #f '("void") _) 'VOID]
          [(NamespaceName _ _ #f '("int") _) 'INT]
          [(NamespaceName _ _ #f '("float") _) 'FLOAT]
@@ -1389,13 +1390,19 @@ BOOL_TRUE BOOL_FALSE ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
       [(ABSTRACT) 'ABSTRACT]
       [(FINAL) 'FINAL])
 
+     (class_constant_visibility
+      [(PUBLIC) 'PUBLIC]
+      [(PROTECTED) 'PROTECTED]
+      [(PRIVATE) 'PRIVATE]
+      [() #f])
+
      (class_constant_declaration
       [(class_constant_declaration COMMA IDENT ASSIGN expr)
        (ConstClassDcls $1-start-pos $5-end-pos
                        (append $1 (list (ConstClassDcl $1-start-pos $5-end-pos $3 $5))))]
-      [(empty_documentation CONST IDENT ASSIGN static_scalar)
-       (ConstClassDcls $1-start-pos $5-end-pos
-                       (list (ConstClassDcl $1-start-pos $5-end-pos $1 $3 $5)))])
+      [(empty_documentation class_constant_visibility CONST IDENT ASSIGN static_scalar)
+       (ConstClassDcls $1-start-pos $6-end-pos
+                       (list (ConstClassDcl $1-start-pos $6-end-pos $1 $2 $4 $6)))])
 
 
      (inner_statement
@@ -1779,7 +1786,7 @@ BOOL_TRUE BOOL_FALSE ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
            (LambdaDcl-reference x)))
         #:transparent)
 
-(struct ConstClassDcl Position (documentation name value)
+(struct ConstClassDcl Position (documentation visibility name value)
         #:transparent
         #:property prop:sub-ast
         (lambda (x)
