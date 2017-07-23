@@ -794,9 +794,12 @@ BOOL_TRUE BOOL_FALSE ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
      (expr_without_new
       [(parenthesis_expr) $1]
       [(scalar) $1]
-      [(LIST OPAREN assignment_list CPAREN ASSIGN expr)
+      [(LIST OPAREN array_pair_list CPAREN ASSIGN expr)
        (Assign $1-start-pos $6-end-pos 'ASSIGN
-               (ListPattern $1-start-pos $4-end-pos $3) $6)]
+               (ListPattern $1-start-pos $4-end-pos $3 #f) $6)]
+      [(OBRAKET array_pair_list CBRAKET ASSIGN expr)
+       (Assign $1-start-pos $5-end-pos 'ASSIGN
+               (ListPattern $1-start-pos $3-end-pos $2 #t) $5)]
       [(combined_scalar_offset) $1]
       [(combined_scalar) $1]
       [(OPAREN new_expr CPAREN chaining_instance_call)
@@ -958,17 +961,6 @@ BOOL_TRUE BOOL_FALSE ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
      (combined_scalar
       [(ARRAY OPAREN array_pair_list CPAREN) (Array $1-start-pos $4-end-pos $3)]
       [(OBRAKET array_pair_list CBRAKET) (ShortArray $1-start-pos $3-end-pos $2)])
-
-
-     (assignment_list
-      [(assignment_list COMMA assignment_list_element) (append $1 (list $3))]
-      [(assignment_list_element) (list $1)])
-
-     (assignment_list_element
-      [(variable) $1]
-      [(LIST OPAREN assignment_list CPAREN) $3]
-      [() null])
-
 
      (scalar
       ;;T_STRING_VARNAME used for $ { abc }
@@ -1525,7 +1517,8 @@ BOOL_TRUE BOOL_FALSE ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
      (foreach_variable
       [(variable) $1]
       [(AMPERSTAND variable) (AddrVariable $1-start-pos $2-end-pos $2)]
-      [(LIST OPAREN assignment_list CPAREN) (ListPattern $1-start-pos $4-end-pos $3)])
+      [(LIST OPAREN array_pair_list CPAREN) (ListPattern $1-start-pos $4-end-pos $3 #f)]
+      [(OBRAKET array_pair_list CBRAKET) (ListPattern $1-start-pos $3-end-pos $2 #t)])
 
      (foreach_statement
       [(statement) $1]
@@ -1733,7 +1726,7 @@ BOOL_TRUE BOOL_FALSE ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
            (ParameterDcl-default x))))
 
 (ast-struct DeclareStmt Position (list stmt) #:transparent)
-(ast-struct ListPattern Position (pattern) #:transparent)
+(ast-struct ListPattern Position (pattern short-syntax) #:transparent)
 (ast-struct TraitAlias Position (from to) #:transparent)
 (ast-struct TraitPrecedence Position (from to) #:transparent)
 
