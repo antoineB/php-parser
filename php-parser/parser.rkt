@@ -146,11 +146,29 @@ BOOL_TRUE BOOL_FALSE ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
 ;; Regex that match the the begining of class|function|property|method. This is
 ;; used to check during the lexing if a comment can be used to document.
 (define doc-comment-regex
-  #rx"^(\n|\t| |\r|\f)*(public|protected|private|static|abstract|final|var|function|class|interface|const|trait)")
+  #rx"^(\n|\t| |\r|\f)*(?i:public|protected|private|static|abstract|final|var|function|class|interface|const|trait)")
 
 (define (usefull-doc-comment? input-port)
-  (regexp-match-peek doc-comment-regex
-                     input-port))
+  (and (regexp-match-peek doc-comment-regex
+                          input-port)
+       (not (regexp-match-peek
+             #rx"^(\n|\t| |\r|\f)*(?i:static)(\n|\t| |\r|\f)+[$]"
+             input-port))))
+
+
+(define (read-until-heredoc until input-port)
+  (define until-rx (regexp (string-append "^[\n\r]" until "([\n\r]|;[\r\n])")))
+  (define data (open-output-string ""))
+  (let loop ()
+    (if (regexp-match-peek until-rx input-port)
+        (begin
+          (write-bytes (first (regexp-match (string-append "^[\n\r]" until) input-port)) data)
+          (get-output-string data))
+        (let ([read/c (read-char input-port)])
+          (if (eof-object? read/c)
+              (get-output-string data)
+              (begin (write-char read/c data) (loop)))))))
+
 
 (define get-heredoc-token
   (lexer
@@ -158,7 +176,7 @@ BOOL_TRUE BOOL_FALSE ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
     (begin0
       (string-append
        lexeme
-       (read-until
+       (read-until-heredoc
         (substring lexeme 1 (- (string-length lexeme) 2))
         input-port))
       (let-values ([(line col offset) (port-next-location input-port)])
@@ -167,7 +185,7 @@ BOOL_TRUE BOOL_FALSE ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
     (begin0
       (string-append
        lexeme
-       (read-until
+       (read-until-heredoc
         (substring lexeme 0 (- (string-length lexeme) 1))
         input-port))
       (let-values ([(line col offset) (port-next-location input-port)])
@@ -370,6 +388,8 @@ BOOL_TRUE BOOL_FALSE ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
    [#\` (let ([data (tokenize-string #\` input-port)])
           (token-BACKQUOTE_STRING (string-append "`" data)))]
 
+   [(:: "0b" (:+ (:or #\0 #\1)))
+    (token-INTEGER lexeme)]
    [(:+ digit) (token-INTEGER (string->number lexeme))]
    [(:: (:+ digit) (:or #\e #\E) (:? (:or #\+ #\-)) (:+ digit))
     (token-INTEGER lexeme)]
@@ -550,6 +570,8 @@ BOOL_TRUE BOOL_FALSE ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
    [#\` (let ([data (tokenize-string #\` input-port)])
           (token-BACKQUOTE_STRING (string-append "`" data)))]
 
+   [(:: "0b" (:+ (:or #\0 #\1)))
+    (token-INTEGER lexeme)]
    [(:+ digit)
     (token-INTEGER (string->number lexeme))]
    [(:: (:+ digit) (:or #\e #\E) (:? (:or #\+ #\-)) (:+ digit))
@@ -793,6 +815,8 @@ BOOL_TRUE BOOL_FALSE ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
 
      (expr_without_new
       [(parenthesis_expr) $1]
+      [(parenthesis_expr chaining_instance_call)
+       (ObjectChain $1-start-pos $2-end-pos (cons $1 $2))]
       [(scalar) $1]
       [(LIST OPAREN array_pair_list CPAREN ASSIGN expr)
        (Assign $1-start-pos $6-end-pos 'ASSIGN
@@ -802,8 +826,6 @@ BOOL_TRUE BOOL_FALSE ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
                (ListPattern $1-start-pos $3-end-pos $2 #t) $5)]
       [(combined_scalar_offset) $1]
       [(combined_scalar) $1]
-      [(OPAREN new_expr CPAREN chaining_instance_call)
-       (ObjectChain $1-start-pos $4-end-pos (cons $2 $4))]
       [(CLONE expr) (Clone $1-start-pos $2-end-pos $2)]
       [(expr INSTANCEOF class_name_reference)
        (InstanceOfExpr $1-start-pos $3-end-pos $1 $3)]
@@ -896,8 +918,11 @@ BOOL_TRUE BOOL_FALSE ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
         (ClassAnonymousDcl $1-start-pos $3-end-pos #f (vector-ref $3 0) (vector-ref $3 1) (vector-ref $3 2)))])
 
      (new_expr
+      [(OPAREN new_expr CPAREN) $2]
       [(NEW anonymous_class) (NewExpr $1-start-pos $2-end-pos (cdr $2) (car $2))]
-      [(NEW class_name_reference ctor_arguments) (NewExpr $1-start-pos $3-end-pos $2 $3)])
+      [(NEW class_name_reference ctor_arguments) (NewExpr $1-start-pos $3-end-pos $2 $3)]
+      [(OPAREN new_expr CPAREN chaining_instance_call)
+       (ObjectChain $1-start-pos $4-end-pos (cons $2 $4))])
 
      (ctor_arguments
       [() '()]
@@ -1609,24 +1634,21 @@ BOOL_TRUE BOOL_FALSE ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
       [(static_scalar) (list $1)])
 
      (array_pair_list
-      [() '()]
-      [(non_empty_array_pair_list possible_comma) $1])
+      [(non_empty_array_pair_list) $1])
 
-     (non_empty_array_pair_list
-      [(non_empty_array_pair_list COMMA expr DOUBLE_ARROW expr)
-       (append $1 (list (cons $3 $5)))]
-      [(non_empty_array_pair_list COMMA expr)
-       (append $1 (list $3))]
+     (array_pair_list_elem
+      [() (list #f)]
       [(expr DOUBLE_ARROW expr) (list (cons $1 $3))]
       [(expr) (list $1)]
-      [(non_empty_array_pair_list COMMA expr DOUBLE_ARROW AMPERSTAND w_variable)
-       (append $1 (list (cons $3 (AddrVariable $5-start-pos $6-end-pos $6))))]
-      [(non_empty_array_pair_list COMMA AMPERSTAND w_variable)
-       (append $1 (list (AddrVariable $3-start-pos $4-end-pos $4)))]
       [(expr DOUBLE_ARROW AMPERSTAND w_variable)
        (list (cons $1 (AddrVariable $3-start-pos $4-end-pos $4)))]
       [(AMPERSTAND w_variable)
        (list (AddrVariable $1-start-pos $2-end-pos $2))])
+
+     (non_empty_array_pair_list
+      [(non_empty_array_pair_list COMMA array_pair_list_elem)
+       (append $1 $3)]
+      [(array_pair_list_elem) $1])
 
      (common_scalar
       [(BOOL_TRUE) (Literal $1-start-pos $1-end-pos 'BOOL_TRUE)]
@@ -1991,3 +2013,5 @@ BOOL_TRUE BOOL_FALSE ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
 ;; TODO: should not be valid: <?php namespace \toto;
 ;; TODO: Add constant expression http://php.net/manual/en/migration56.new-features.php#migration56.new-features.const-scalar-exprs
 ;; TODO: php7: http://php.net/manual/en/migration70.new-features.php expect scalar type hint & anonymous class
+
+;; FIX: while, if, for, foreach with : intead of braces
