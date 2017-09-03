@@ -625,11 +625,11 @@ BOOL_TRUE BOOL_FALSE ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
 
 (define current-lexer (make-parameter 'text))
 
-(define pending-token #f)
+(define pending-token (make-parameter #f))
 
 (define (php-lexer input-port)
-  (if pending-token
-      (begin0 pending-token (set! pending-token #f))
+  (if (pending-token)
+      (begin0 (pending-token) (pending-token #f))
       (let ([token (case (current-lexer)
                      [(php-one-keyword)
                       (let ([token (php-lexer-without-keywords input-port)])
@@ -651,12 +651,12 @@ BOOL_TRUE BOOL_FALSE ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
                       (current-lexer 'php)
                       (or tokena (php-lexer input-port))])])
         (case (token-name (position-token-token token))
-          [(OPEN_TAG_WITH_ECHO) (set! pending-token
+          [(OPEN_TAG_WITH_ECHO) (pending-token
                                   (position-token (token-ECHO)
                                                   (position-token-start-pos token)
                                                   (position-token-end-pos token)))]
           [(CLOSE_TAG)
-           (set! pending-token
+           (pending-token
              (position-token (token-SEMICOLON)
                              (position-token-start-pos token)
                              (position-token-end-pos token)))])
