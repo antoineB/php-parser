@@ -1203,7 +1203,7 @@ BOOL_TRUE BOOL_FALSE ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
      (parameter_dcl
       [(optional_type_hint is_reference is_variadic VARIABLE)
        (ParameterDcl $1-start-pos $2-end-pos $1 $4 $2 $3 #f)]
-      [(optional_type_hint is_reference is_variadic VARIABLE ASSIGN static_scalar)
+      [(optional_type_hint is_reference is_variadic VARIABLE ASSIGN expr)
        (ParameterDcl $1-start-pos $5-end-pos $1 $4 $2 $3 $6)])
 
      (non_empty_parameter_list
@@ -1235,7 +1235,7 @@ BOOL_TRUE BOOL_FALSE ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
       [(constant_declaration COMMA IDENT ASSIGN expr)
        (ConstDcls $1-start-pos $5-end-pos
                   (append $1 (list (ConstDcl $3-start-pos $5-end-pos $3 $5))))]
-      [(empty_documentation CONST IDENT ASSIGN static_scalar)
+      [(empty_documentation CONST IDENT ASSIGN expr)
        (ConstDcls $1-start-pos $5-end-pos
                   (list (ConstDcl $1-start-pos $5-end-pos $1 $3 $5)))])
 
@@ -1327,7 +1327,7 @@ BOOL_TRUE BOOL_FALSE ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
       [() '()])
 
      (class_statement
-      [(empty_documentation variable_modifiers class_variable_declaration SEMICOLON)
+      [(empty_documentation variable_modifiers expr_list SEMICOLON)
        (PropertyDcl $2-start-pos $3-end-pos $1 $2 $3)]
       [(class_constant_declaration SEMICOLON) $1]
       [(trait_use_statement) $1]
@@ -1391,15 +1391,6 @@ BOOL_TRUE BOOL_FALSE ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
       [(SEMICOLON) '()]
       [(OBRACE inner_statement_list CBRACE) $2])
 
-     (class_variable_declaration
-      [(class_variable_declaration COMMA VARIABLE)
-       (append $1 (list $3))]
-      [(class_variable_declaration COMMA VARIABLE ASSIGN static_scalar)
-       (append $1 (list (cons $3 $5)))]
-      [(VARIABLE) (list $1)]
-      [(VARIABLE ASSIGN static_scalar) (list (cons $1 $3))])
-
-
      (variable_modifiers
       [(non_empty_member_modifiers) $1]
       [(VAR) (list 'VAR)])
@@ -1430,7 +1421,7 @@ BOOL_TRUE BOOL_FALSE ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
       [(class_constant_declaration COMMA IDENT ASSIGN expr)
        (ConstClassDcls $1-start-pos $5-end-pos
                        (append $1 (list (ConstClassDcl $1-start-pos $5-end-pos $3 $5))))]
-      [(empty_documentation class_constant_visibility CONST IDENT ASSIGN static_scalar)
+      [(empty_documentation class_constant_visibility CONST IDENT ASSIGN expr)
        (ConstClassDcls $1-start-pos $6-end-pos
                        (list (ConstClassDcl $1-start-pos $6-end-pos $1 $2 $4 $6)))])
 
@@ -1486,7 +1477,7 @@ BOOL_TRUE BOOL_FALSE ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
       [(ECHO echo_expr_list SEMICOLON) (EchoStmt $1-start-pos $3-end-pos $2)]
       ;; T_INLINE_HTML
       [(GLOBAL global_var_list SEMICOLON) (GlobalStmt $1-start-pos $3-end-pos $2)]
-      [(STATIC static_var_list SEMICOLON) (StaticStmt $1-start-pos $3-end-pos $2)]
+      [(STATIC expr_list SEMICOLON) (StaticStmt $1-start-pos $3-end-pos $2)]
       [(UNSET OPAREN unset_variables CPAREN SEMICOLON) (UnsetStmt $1-start-pos $5-end-pos $3)]
       [(GOTO IDENT SEMICOLON) (GotoStmt $1-start-pos $3-end-pos $2)]
       [(DECLARE OPAREN declare_list CPAREN declare_statement)
@@ -1498,8 +1489,8 @@ BOOL_TRUE BOOL_FALSE ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
       [(COLON inner_statement_list ENDDECLARE SEMICOLON) $2])
 
      (declare_list
-      [(IDENT ASSIGN static_scalar) (list (cons $1 $3))]
-      [(declare_list COMMA IDENT ASSIGN static_scalar)
+      [(IDENT ASSIGN expr) (list (cons $1 $3))]
+      [(declare_list COMMA IDENT ASSIGN expr)
        (append $1 (list (cons $3 $5)))])
 
      (global_var_list
@@ -1511,13 +1502,13 @@ BOOL_TRUE BOOL_FALSE ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
       ;; [(DOLLAR r_variable)
       [(DOLLAR OBRACE expr CBRACE) (BraceVariable $1-start-pos $4-end-pos $3)])
 
-     (static_var_list
-      [(static_var_list COMMA VARIABLE)
+     (expr_list
+      [(expr_list COMMA VARIABLE)
        (append $1 (list (Variable $3-start-pos $3-end-pos $3)))]
-      [(static_var_list COMMA VARIABLE ASSIGN static_scalar)
+      [(expr_list COMMA VARIABLE ASSIGN expr)
        (append $1 (list (cons (Variable $3-start-pos $3-end-pos $3) $5)))]
       [(VARIABLE) (list (Variable $1-start-pos $1-end-pos $1))]
-      [(VARIABLE ASSIGN static_scalar)
+      [(VARIABLE ASSIGN expr)
        (list (cons (Variable $1-start-pos $1-end-pos $1) $3))])
 
 
@@ -1610,17 +1601,6 @@ BOOL_TRUE BOOL_FALSE ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
      (static_class_name_scalar
       [(class_name PAAMAYIM_NEKUDOTAYIM CLASS) (ClassName $1-start-pos $3-end-pos $1 'CLASS)])
 
-
-     (static_scalar
-      [(common_scalar) $1]
-      [(static_class_name_scalar) $1]
-      [(fully_qualified_class_name) $1]
-      [(PLUS static_scalar) (Infix $1-start-pos $2-end-pos 'PLUS $2)]
-      [(MINUS static_scalar) (Infix $1-start-pos $2-end-pos 'MINUS $2)]
-      [(ARRAY OPAREN static_array_pair_list CPAREN) (Array $1-start-pos $4-end-pos $3)]
-      [(OBRAKET static_array_pair_list CBRAKET) (ShortArray $1-start-pos $3-end-pos $2)]
-      [(static_class_constant) $1]
-      [(CLASS_C) 'CLASS_C])
 
      (static_array_pair_list
       [() null]
