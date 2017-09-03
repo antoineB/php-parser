@@ -117,8 +117,8 @@
  (blanks (:or #\space #\tab #\return #\page))
  (newline #\newline)
  (digit (:/ "0" "9"))
- (symbol-regex (:: (:or lower-letter upper-letter #\_)
-                   (:* (:or lower-letter upper-letter #\_ digit)))))
+ (symbol-regex (:: (:or lower-letter upper-letter #\_ (:/ #\u0080 #\u00ff))
+                   (:* (:or lower-letter upper-letter #\_ digit (:/ #\u0080 #\u00ff))))))
 
 (define-empty-tokens op-tokens
   (EOF OPAREN CPAREN OBRACE CBRACE OBRAKET CBRAKET INCLUDE INCLUDE_ONCE EVAL
@@ -146,7 +146,7 @@ BOOL_TRUE BOOL_FALSE ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
 ;; Regex that match the the begining of class|function|property|method. This is
 ;; used to check during the lexing if a comment can be used to document.
 (define doc-comment-regex
-  #rx"^(\n|\t| |\r|\f)*(?i:public|protected|private|static|abstract|final|var|function|class|interface|const|trait)")
+  #rx"^(\n|\t| |\r|\f)*(?i:public|protected|private|static|abstract|final|var|function|class|interface|const|trait)(\r\n\t\f )")
 
 (define (usefull-doc-comment? input-port)
   (and (regexp-match-peek doc-comment-regex
@@ -1108,6 +1108,11 @@ BOOL_TRUE BOOL_FALSE ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
 
      (non_empty_function_call_parameter_list
       [(function_call_parameter) (list $1)]
+      [(ELLIPSIS function_call_parameter)
+       (FunctionCallParameter (Position-start $2)
+                              (Position-end $2)
+                              (FunctionCallParameter-expr $2)
+                              #t)]
       [(non_empty_function_call_parameter_list COMMA function_call_parameter)
        (append $1 (list $3))]
       [(non_empty_function_call_parameter_list COMMA ELLIPSIS function_call_parameter)
@@ -1625,13 +1630,12 @@ BOOL_TRUE BOOL_FALSE ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
       [() (void)]
       [(COMMA) (void)])
 
-
      (non_empty_static_array_pair_list
-      [(non_empty_static_array_pair_list COMMA static_scalar DOUBLE_ARROW static_scalar)
+      [(non_empty_static_array_pair_list COMMA expr DOUBLE_ARROW expr)
        (append $1 (list (cons $3 $5)))]
-      [(non_empty_static_array_pair_list COMMA static_scalar) (append $1 (list $3))]
-      [(static_scalar DOUBLE_ARROW static_scalar) (list (cons $1 $3))]
-      [(static_scalar) (list $1)])
+      [(non_empty_static_array_pair_list COMMA expr) (append $1 (list $3))]
+      [(expr DOUBLE_ARROW expr) (list (cons $1 $3))]
+      [(expr) (list $1)])
 
      (array_pair_list
       [(non_empty_array_pair_list) $1])
