@@ -1621,7 +1621,7 @@ BOOL_TRUE BOOL_FALSE ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
       [(non_empty_array_pair_list) $1])
 
      (array_pair_list_elem
-      [() (list #f)]
+      [() (list)]
       [(expr DOUBLE_ARROW expr) (list (cons $1 $3))]
       [(expr) (list $1)]
       [(expr DOUBLE_ARROW AMPERSTAND w_variable)
