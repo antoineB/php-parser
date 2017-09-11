@@ -137,7 +137,7 @@ NAMESPACE NS_C DIR OPEN_TAG DOLLAR_OPEN_CURLY_BRACES DOLLAR OPEN_TAG_WITH_ECHO
 CLOSE_TAG CURLY_OPEN PAAMAYIM_NEKUDOTAYIM NS_SEPARATOR
 SEMICOLON COLON NEG BAR HAT AMPERSTAND COMMA DOT PLUS MINUS DIV MULT MOD TILD AT EXPO
 QUESTION ASSIGN SMALLER GREATER LOW_PRIORITY_RULE HALT_COMPILER
-BOOL_TRUE BOOL_FALSE ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
+BOOL_TRUE BOOL_FALSE NULL ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
 
 (define-tokens value-tokens
   (HEREDOC VARIABLE IDENT INTEGER FLOAT QUOTE_STRING D_QUOTE_STRING BACKQUOTE_STRING DOCUMENTATION LINE_COMMENT COMMENT BLANKS NEWLINES TEXT))
@@ -308,6 +308,7 @@ BOOL_TRUE BOOL_FALSE ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
    [(ignore-case "namespace") 'NAMESPACE]
    [(ignore-case "true") 'BOOL_TRUE]
    [(ignore-case "false") 'BOOL_FALSE]
+   [(ignore-case "null") 'NULL]
 
    ["<=>" 'SPACESHIP]
    ["+=" 'PLUS_EQUAL]
@@ -1222,13 +1223,13 @@ BOOL_TRUE BOOL_FALSE ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
       [(CALLABLE) 'CALLABLE]
       [(fully_qualified_class_name)
        (match $1
-         [(NamespaceName _ _ #f '("iterable") _) 'ITERABLE]
-         [(NamespaceName _ _ #f '("void") _) 'VOID]
-         [(NamespaceName _ _ #f '("int") _) 'INT]
-         [(NamespaceName _ _ #f '("float") _) 'FLOAT]
-         [(NamespaceName _ _ #f '("bool") _) 'BOOL]
-         [(NamespaceName _ _ #f '("string") _) 'STRING]
-         [(NamespaceName _ _ #f '("self") _) 'SELF]
+         [(NamespaceName _ _ #f '("iterable")) 'ITERABLE]
+         [(NamespaceName _ _ #f '("void")) 'VOID]
+         [(NamespaceName _ _ #f '("int")) 'INT]
+         [(NamespaceName _ _ #f '("float")) 'FLOAT]
+         [(NamespaceName _ _ #f '("bool")) 'BOOL]
+         [(NamespaceName _ _ #f '("string")) 'STRING]
+         [(NamespaceName _ _ #f '("self")) 'SELF]
          [else $1])])
 
      (constant_declaration
@@ -1637,6 +1638,7 @@ BOOL_TRUE BOOL_FALSE ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
      (common_scalar
       [(BOOL_TRUE) (Literal $1-start-pos $1-end-pos 'BOOL_TRUE)]
       [(BOOL_FALSE) (Literal $1-start-pos $1-end-pos 'BOOL_FALSE)]
+      [(NULL) (Literal  $1-start-pos $1-end-pos 'NULL)]
       [(INTEGER) (Literal $1-start-pos $1-end-pos $1)]
       [(FLOAT) (Literal $1-start-pos $1-end-pos $1)]
       ;; TODO: official parser have this T_CONSTANT_ENCAPSED_STRING
@@ -1676,62 +1678,62 @@ BOOL_TRUE BOOL_FALSE ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
   (struct-copy UseDeclaration use-declaration
                  [type ttype]))
 
-(ast-struct NamespaceName Position (global name)
+(struct NamespaceName Position (global name)
             #:transparent)
 
-(ast-struct ClassName Position (class property) #:transparent)
-(ast-struct FunctionCallParameter Position (expr unpack) #:transparent)
+(struct ClassName Position (class property) #:transparent)
+(struct FunctionCallParameter Position (expr unpack) #:transparent)
 
-(ast-struct Literal Position (value) #:transparent)
-(ast-struct HeredocLiteral Position (value) #:transparent)
-(ast-struct DQStringLiteral Position (value) #:transparent)
-(ast-struct StringLiteral Position (value) #:transparent)
+(struct Literal Position (value) #:transparent)
+(struct HeredocLiteral Position (value) #:transparent)
+(struct DQStringLiteral Position (value) #:transparent)
+(struct StringLiteral Position (value) #:transparent)
 
 
 ;; ---- VARIABLES ----
-(ast-struct AddrVariable Position (expr) #:transparent)
-(ast-struct ArrayAccess Position (expr inside-expr) #:transparent)
-(ast-struct BraceAccess Position (expr inside-expr) #:transparent)
-(ast-struct ObjectAccess Position (expr) #:transparent)
-(ast-struct BraceNaming Position (expr) #:transparent)
-(ast-struct ChainBrace Position (expr) #:transparent)
-(ast-struct ChainArray Position (expr) #:transparent)
-(ast-struct BraceVariable Position (expr) #:transparent)
-(ast-struct Variable Position (name) #:transparent)
-(ast-struct IndirectionVariable Position (variable levels) #:transparent)
-(ast-struct ObjectChain Position (list) #:transparent)
+(struct AddrVariable Position (expr) #:transparent)
+(struct ArrayAccess Position (expr inside-expr) #:transparent)
+(struct BraceAccess Position (expr inside-expr) #:transparent)
+(struct ObjectAccess Position (expr) #:transparent)
+(struct BraceNaming Position (expr) #:transparent)
+(struct ChainBrace Position (expr) #:transparent)
+(struct ChainArray Position (expr) #:transparent)
+(struct BraceVariable Position (expr) #:transparent)
+(struct Variable Position (name) #:transparent)
+(struct IndirectionVariable Position (variable levels) #:transparent)
+(struct ObjectChain Position (list) #:transparent)
 
 
 ;; ---- ARRAY LITERAL ----
-(ast-struct Array Position (exprs) #:transparent)
-(ast-struct ShortArray Position (exprs) #:transparent)
+(struct Array Position (exprs) #:transparent)
+(struct ShortArray Position (exprs) #:transparent)
 
 ;; ---- EXPRS ----
-(ast-struct BackQuoteExpr Position (value) #:transparent)
-(ast-struct Binary Position (op left right) #:transparent)
-(ast-struct Infix Position (op expr) #:transparent)
-(ast-struct Postfix Position(op expr) #:transparent)
-(ast-struct Unary Position (op expr) #:transparent)
-(ast-struct Cast Position (to expr) #:transparent)
-(ast-struct Assign Position (op left right) #:transparent)
-(ast-struct Yield Position (expr alias) #:transparent)
-(ast-struct YieldFrom Position (expr) #:transparent)
-(ast-struct Exit Position (expr) #:transparent)
-(ast-struct Clone Position (expr) #:transparent)
-(ast-struct NewExpr Position (class parameters) #:transparent)
-(ast-struct InstanceOfExpr Position (left right) #:transparent)
-(ast-struct TestExpr Position (test then else) #:transparent)
-(ast-struct CoalesceExpr Position (left right) #:transparent)
-(ast-struct PrintExpr Position (expr) #:transparent)
-(ast-struct AtExpr Position (expr) #:transparent)
-(ast-struct FunctionCall Position (expr args) #:transparent)
-(ast-struct EmptyExpr Position (expr) #:transparent)
-(ast-struct EvalExpr Position (expr) #:transparent)
+(struct BackQuoteExpr Position (value) #:transparent)
+(struct Binary Position (op left right) #:transparent)
+(struct Infix Position (op expr) #:transparent)
+(struct Postfix Position(op expr) #:transparent)
+(struct Unary Position (op expr) #:transparent)
+(struct Cast Position (to expr) #:transparent)
+(struct Assign Position (op left right) #:transparent)
+(struct Yield Position (expr alias) #:transparent)
+(struct YieldFrom Position (expr) #:transparent)
+(struct Exit Position (expr) #:transparent)
+(struct Clone Position (expr) #:transparent)
+(struct NewExpr Position (class parameters) #:transparent)
+(struct InstanceOfExpr Position (left right) #:transparent)
+(struct TestExpr Position (test then else) #:transparent)
+(struct CoalesceExpr Position (left right) #:transparent)
+(struct PrintExpr Position (expr) #:transparent)
+(struct AtExpr Position (expr) #:transparent)
+(struct FunctionCall Position (expr args) #:transparent)
+(struct EmptyExpr Position (expr) #:transparent)
+(struct EvalExpr Position (expr) #:transparent)
 
 ;; ---- DEDICATED EXPRS ----
-(ast-struct TypeHint Position (type nullable) #:transparent)
-(ast-struct GroupUseDeclaration Position (name uses) #:transparent)
-(ast-struct UseDeclaration Position (name alias type) #:transparent)
+(struct TypeHint Position (type nullable) #:transparent)
+(struct GroupUseDeclaration Position (name uses) #:transparent)
+(struct UseDeclaration Position (name alias type) #:transparent)
 (struct ParameterDcl Position (type name reference variadic default)
         #:transparent
         #:property prop:sub-ast
@@ -1743,36 +1745,36 @@ BOOL_TRUE BOOL_FALSE ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
            (ParameterDcl-variadic x)
            (ParameterDcl-default x))))
 
-(ast-struct DeclareStmt Position (list stmt) #:transparent)
-(ast-struct ListPattern Position (pattern short-syntax) #:transparent)
-(ast-struct TraitAlias Position (from to) #:transparent)
-(ast-struct TraitPrecedence Position (from to) #:transparent)
+(struct DeclareStmt Position (list stmt) #:transparent)
+(struct ListPattern Position (pattern short-syntax) #:transparent)
+(struct TraitAlias Position (from to) #:transparent)
+(struct TraitPrecedence Position (from to) #:transparent)
 
 ;; ---- STATEMENTS ----
-(ast-struct ForLoop Position (init test step statement) #:transparent)
-(ast-struct Switch Position (test cases) #:transparent)
-(ast-struct ForEachLoop Position (variable loop-variable option stmt) #:transparent)
-(ast-struct UseStmt Position (uses type) #:transparent)
-(ast-struct GlobalStmt Position (list) #:transparent)
-(ast-struct StaticStmt Position (list) #:transparent)
-(ast-struct IfStmt Position (test then elseifs else) #:transparent)
-(ast-struct WhileStmt Position (test stmt) #:transparent)
-(ast-struct DoWhileStmt Position (test stmt) #:transparent)
-(ast-struct BlockStmt Position (stmts) #:transparent)
-(ast-struct ExprStmt Position (expr) #:transparent)
-(ast-struct EmptyStmt Position () #:transparent)
-(ast-struct LabelStmt Position (label) #:transparent)
-(ast-struct TraitStmt Position (list adapter) #:transparent)
-(ast-struct TryStmt Position (stmts catchs finally) #:transparent)
-(ast-struct FinallyStmt Position (stmts) #:transparent)
-(ast-struct CatchStmt Position (exceptions variable statement) #:transparent)
-(ast-struct ThrowStmt Position (expr) #:transparent)
-(ast-struct BreakStmt Position (label) #:transparent)
-(ast-struct ContinueStmt Position (label) #:transparent)
-(ast-struct ReturnStmt Position (expr) #:transparent)
-(ast-struct EchoStmt Position (exprs) #:transparent)
-(ast-struct UnsetStmt Position (variables) #:transparent)
-(ast-struct GotoStmt Position (label) #:transparent)
+(struct ForLoop Position (init test step statement) #:transparent)
+(struct Switch Position (test cases) #:transparent)
+(struct ForEachLoop Position (variable loop-variable option stmt) #:transparent)
+(struct UseStmt Position (uses type) #:transparent)
+(struct GlobalStmt Position (list) #:transparent)
+(struct StaticStmt Position (list) #:transparent)
+(struct IfStmt Position (test then elseifs else) #:transparent)
+(struct WhileStmt Position (test stmt) #:transparent)
+(struct DoWhileStmt Position (test stmt) #:transparent)
+(struct BlockStmt Position (stmts) #:transparent)
+(struct ExprStmt Position (expr) #:transparent)
+(struct EmptyStmt Position () #:transparent)
+(struct LabelStmt Position (label) #:transparent)
+(struct TraitStmt Position (list adapter) #:transparent)
+(struct TryStmt Position (stmts catchs finally) #:transparent)
+(struct FinallyStmt Position (stmts) #:transparent)
+(struct CatchStmt Position (exceptions variable statement) #:transparent)
+(struct ThrowStmt Position (expr) #:transparent)
+(struct BreakStmt Position (label) #:transparent)
+(struct ContinueStmt Position (label) #:transparent)
+(struct ReturnStmt Position (expr) #:transparent)
+(struct EchoStmt Position (exprs) #:transparent)
+(struct UnsetStmt Position (variables) #:transparent)
+(struct GotoStmt Position (label) #:transparent)
 
 (struct FunctionDcl Position
         (documentation name args body reference return-type)
@@ -1803,15 +1805,15 @@ BOOL_TRUE BOOL_FALSE ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
         (lambda (x)
           (list (ConstClassDcl-name x) (ConstClassDcl-value x))))
 
-(ast-struct RequireExpr Position (expr) #:transparent)
-(ast-struct RequireOnceExpr Position (expr) #:transparent)
-(ast-struct IssetExpr Position (expr) #:transparent)
-(ast-struct IncludeExpr Position (expr) #:transparent)
-(ast-struct IncludeOnceExpr Position (expr) #:transparent)
+(struct RequireExpr Position (expr) #:transparent)
+(struct RequireOnceExpr Position (expr) #:transparent)
+(struct IssetExpr Position (expr) #:transparent)
+(struct IncludeExpr Position (expr) #:transparent)
+(struct IncludeOnceExpr Position (expr) #:transparent)
 
-(ast-struct ChainCall Position (args) #:transparent)
+(struct ChainCall Position (args) #:transparent)
 
-(ast-struct NamespaceStmt Position (name body) #:transparent)
+(struct NamespaceStmt Position (name body) #:transparent)
 
 (struct MethodDcl Position
         (documentation modifiers name args body reference return-type)

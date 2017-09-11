@@ -40,7 +40,7 @@
                 [(GroupUseDeclaration? sub)
                  (group-use-dcl->list-usedcl sub)])])
     (match lst
-      [(UseDeclaration _ _ name alias type _)
+      [(UseDeclaration _ _ name alias type)
        (define coerce-alias (or alias (last (NamespaceName-name name))))
        (case (UseStmt-type use)
          [(function) (hash-set! functions coerce-alias name)]

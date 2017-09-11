@@ -10,14 +10,9 @@
  read-until-eof
  tokenize-string
  sub-ast? get-sub-ast
- ast-struct
  position-start-offset
  position-end-offset
- prop:sub-ast
- extra-ast?
- get-extra-ast
- set-extra-ast!
- (struct-out Extra))
+ prop:sub-ast)
 
 (struct Position (start end))
 
@@ -30,51 +25,8 @@
 (define-values (prop:sub-ast sub-ast? sub-ast-ref)
   (make-struct-type-property 'sub-ast))
 
-(define-values (prop:extra-ast extra-ast? extra-ast-ref)
-  (make-struct-type-property 'extra-ast))
-
-(serializable-struct Extra (parent type))
-
-;; do somestuff like (filter (lambda (x) (symbol? (syntax->datum x))) (syntax->list #'(args ...)))
-(define-syntax (ast-struct stx)
-  (syntax-case stx ()
-    [(_ name (args ...) props ...)
-     #`(serializable-struct name #,(append (syntax->list #'(args ...)) (list #'(extra-ast #:mutable #:auto))) props ...
-               #:property prop:extra-ast
-               #,(with-syntax ([get (format-id stx "~a-extra-ast" #'name)]
-                               [set (format-id stx "set-~a-extra-ast!" #'name)])
-                   #'(cons
-                      (lambda (x) (get x))
-                      (lambda (x v) (set x v))))
-               #:property prop:sub-ast
-               (lambda (x)
-                 (list
-                  #,@(for/list ([a (syntax->list #'(args ...))])
-                       (with-syntax ([f (if (symbol? (syntax->datum a)) (format-id stx "~a-~a" #'name a) #f)])
-                         #`(if f (f x) '()))))))]
-    [(_ name super (args ...) props ...)
-     #`(serializable-struct name super #,(append (syntax->list #'(args ...)) (list #'(extra-ast #:mutable #:auto))) props ...
-               #:property prop:extra-ast
-               #,(with-syntax ([get (format-id stx "~a-extra-ast" #'name)]
-                               [set (format-id stx "set-~a-extra-ast!" #'name)])
-                   #'(cons
-                      (lambda (x) (get x))
-                      (lambda (x v) (set x v))))
-               #:property prop:sub-ast
-               (lambda (x)
-                 (list
-                  #,@(for/list ([a (syntax->list #'(args ...))])
-                       (with-syntax ([f (if (symbol? (syntax->datum a)) (format-id stx "~a-~a" #'name a) #f)])
-                         #`(if f (f x) '()))))))]))
-
 (define (get-sub-ast st)
   ((sub-ast-ref st) st))
-
-(define (get-extra-ast st)
-  ((car (extra-ast-ref st)) st))
-
-(define (set-extra-ast! st v)
-  ((cdr (extra-ast-ref st)) st v))
 
 (define (read-until-eof input-port size)
   (define (loop data size)

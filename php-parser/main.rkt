@@ -1,7 +1,7 @@
 #lang racket
 
 (require "parser.rkt"
-	 "parser-utils.rkt")
+         "parser-utils.rkt")
 
 (provide
  (all-from-out "parser.rkt")
@@ -11,14 +11,6 @@
  Position?
  sub-ast?
  get-sub-ast
- ast-struct
  position-start-offset
  position-end-offset
- prop:sub-ast
- extra-ast?
- get-extra-ast
- set-extra-ast!
- Extra?
- Extra
- Extra-parent
- Extra-type)
+ prop:sub-ast)
