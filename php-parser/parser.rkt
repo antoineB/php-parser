@@ -106,6 +106,7 @@
          (struct-out ConstClassDcls)
          (struct-out Literal)
          (struct-out HeredocLiteral)
+         (struct-out NowdocLiteral)
          (struct-out DQStringLiteral)
          (struct-out StringLiteral)
          (struct-out GroupUseDeclaration))
@@ -140,7 +141,7 @@ QUESTION ASSIGN SMALLER GREATER LOW_PRIORITY_RULE HALT_COMPILER
 BOOL_TRUE BOOL_FALSE NULL ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
 
 (define-tokens value-tokens
-  (HEREDOC VARIABLE IDENT INTEGER FLOAT QUOTE_STRING D_QUOTE_STRING BACKQUOTE_STRING DOCUMENTATION LINE_COMMENT COMMENT BLANKS NEWLINES TEXT))
+  (HEREDOC NOWDOC VARIABLE IDENT INTEGER FLOAT QUOTE_STRING D_QUOTE_STRING BACKQUOTE_STRING DOCUMENTATION LINE_COMMENT COMMENT BLANKS NEWLINES TEXT))
 
 
 ;; Regex that match the the begining of class|function|property|method. This is
@@ -225,7 +226,9 @@ BOOL_TRUE BOOL_FALSE NULL ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
                 (token-DOCUMENTATION data)))]
 
    ["<<<" (let ([str (get-heredoc-token input-port)])
-            (token-HEREDOC (string-append "<<<" str)))]
+            (if (regexp-match? #rx"'[^']+'\n" str)
+                (token-NOWDOC (string-append "<<<" str))
+                (token-HEREDOC (string-append "<<<" str))))]
 
    ["..." 'ELLIPSIS]
    [(ignore-case "new") 'NEW]
@@ -384,7 +387,7 @@ BOOL_TRUE BOOL_FALSE NULL ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
    [#\' (let ([data (tokenize-string #\' input-port)])
           (token-QUOTE_STRING (string-append "'" data)))]
    [#\" (let ([data (tokenize-string #\" input-port)])
-          (token-QUOTE_STRING (string-append "\"" data)))]
+          (token-D_QUOTE_STRING (string-append "\"" data)))]
 
    [#\` (let ([data (tokenize-string #\` input-port)])
           (token-BACKQUOTE_STRING (string-append "`" data)))]
@@ -491,7 +494,9 @@ BOOL_TRUE BOOL_FALSE NULL ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
                 (token-COMMENT data)
                 (token-DOCUMENTATION data)))]
    ["<<<" (let ([str (get-heredoc-token input-port)])
-            (token-HEREDOC (string-append "<<<" str)))]
+            (if (regexp-match? #rx"'[^']+'\n" str)
+                (token-NOWDOC (string-append "<<<" str))
+                (token-HEREDOC (string-append "<<<" str))))]
 
    ["<=>" 'SPACESHIP]
    ["+=" 'PLUS_EQUAL]
@@ -566,7 +571,7 @@ BOOL_TRUE BOOL_FALSE NULL ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
    [#\' (let ([data (tokenize-string #\' input-port)])
           (token-QUOTE_STRING (string-append "'" data)))]
    [#\" (let ([data (tokenize-string #\" input-port)])
-          (token-QUOTE_STRING (string-append "\"" data)))]
+          (token-D_QUOTE_STRING (string-append "\"" data)))]
    ;; TODO: Add binary string b"" b''
    [#\` (let ([data (tokenize-string #\` input-port)])
           (token-BACKQUOTE_STRING (string-append "`" data)))]
@@ -995,6 +1000,7 @@ BOOL_TRUE BOOL_FALSE NULL ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
       [(fully_qualified_class_name) $1]
       [(common_scalar) $1]
       [(HEREDOC) (HeredocLiteral $1-start-pos $1-end-pos $1)]
+      [(NOWDOC) (NowdocLiteral $1-start-pos $1-end-pos $1)]
       [(CLASS_C) (Literal $1-start-pos $1-end-pos 'CLASS_C)])
 
 
@@ -1686,6 +1692,7 @@ BOOL_TRUE BOOL_FALSE NULL ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
 
 (struct Literal Position (value) #:transparent)
 (struct HeredocLiteral Position (value) #:transparent)
+(struct NowdocLiteral Position (value) #:transparent)
 (struct DQStringLiteral Position (value) #:transparent)
 (struct StringLiteral Position (value) #:transparent)
 
