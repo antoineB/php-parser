@@ -1258,10 +1258,14 @@ BOOL_TRUE BOOL_FALSE NULL ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
       [(use_declarations_with_type COMMA CONST use_declaration) (append $1 (list (change-use-declaration-type $4 'const)))]
       [(CONST use_declaration) (list (change-use-declaration-type $2 'const))])
 
+     (empty_comma
+      [(COMMA) #f]
+      [() #f])
+
      (use_declaration_with_group
-      [(namespace_name NS_SEPARATOR OBRACE use_declarations_with_type CBRACE)
+      [(namespace_name NS_SEPARATOR OBRACE use_declarations_with_type empty_comma CBRACE)
        (GroupUseDeclaration $1-start-pos $5-end-pos (NamespaceName $1-start-pos $1-end-pos #f $1) $4)]
-      [(NS_SEPARATOR namespace_name NS_SEPARATOR OBRACE use_declarations_with_type CBRACE)
+      [(NS_SEPARATOR namespace_name NS_SEPARATOR OBRACE use_declarations_with_type empty_comma CBRACE)
        (GroupUseDeclaration  $1-start-pos $6-end-pos (NamespaceName $2-start-pos $2-end-pos #t $2) $5)]
       [(use_declaration) $1])
 
