@@ -118,8 +118,8 @@
  (blanks (:or #\space #\tab #\return #\page))
  (newline #\newline)
  (digit (:/ "0" "9"))
- (symbol-regex (:: (:or lower-letter upper-letter #\_ (:/ #\u0080 #\u00ff))
-                   (:* (:or lower-letter upper-letter #\_ digit (:/ #\u0080 #\u00ff))))))
+ (symbol-regex (:: (:or lower-letter upper-letter #\_ (:/ #\u0080 #\u07ff))
+                   (:* (:or lower-letter upper-letter #\_ digit (:/ #\u0080 #\u07ff))))))
 
 (define-empty-tokens op-tokens
   (EOF OPAREN CPAREN OBRACE CBRACE OBRAKET CBRAKET INCLUDE INCLUDE_ONCE EVAL
@@ -231,7 +231,9 @@ BOOL_TRUE BOOL_FALSE NULL ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
                 (token-HEREDOC (string-append "<<<" str))))]
 
    ["..." 'ELLIPSIS]
-   [(ignore-case "new") 'NEW]
+   [(ignore-case "new") (begin
+                          (current-lexer 'php-new-keyword)
+                          'NEW)]
    [(ignore-case "clone") 'CLONE]
    [(ignore-case "exit") 'EXIT]
    [(ignore-case "if") 'IF]
@@ -281,7 +283,9 @@ BOOL_TRUE BOOL_FALSE NULL ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
    [(ignore-case "isset") 'ISSET]
    [(ignore-case "empty") 'EMPTY]
    [(ignore-case "class") (begin
-                            (current-lexer 'php-one-keyword)
+                            (if (equal? (current-lexer) 'php-new-keyword)
+                                (current-lexer 'php)
+                                (current-lexer 'php-one-keyword))
                             'CLASS)]
    [(ignore-case "trait") (begin
                             (current-lexer 'php-one-keyword)
@@ -330,6 +334,7 @@ BOOL_TRUE BOOL_FALSE NULL ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
    ["&&" 'BOOLEAN_AND]
    ["==" 'IS_EQUAL]
    ["!=" 'IS_NOT_EQUAL]
+   ["<>" 'IS_NOT_EQUAL]
    ["===" 'IS_IDENTICAL]
    ["!==" 'IS_NOT_IDENTICAL]
    ["<=" 'IS_SMALLER_OR_EQUAL]
@@ -651,7 +656,7 @@ BOOL_TRUE BOOL_FALSE NULL ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
                               [(COMMA IDENT BLANKS) (void)]
                               [else (current-lexer 'php)])
                             token))]
-                     [(php) (php-lexer-with-keywords input-port)]
+                     [(php php-new-keyword) (php-lexer-with-keywords input-port)]
                      [(text)
                       (define tokena (php-lexer-text input-port))
                       (current-lexer 'php)
@@ -1431,7 +1436,7 @@ BOOL_TRUE BOOL_FALSE NULL ELLIPSIS YIELD_FROM SPACESHIP COALESCE))
      (class_constant_declaration
       [(class_constant_declaration COMMA IDENT ASSIGN expr)
        (ConstClassDcls $1-start-pos $5-end-pos
-                       (append $1 (list (ConstClassDcl $1-start-pos $5-end-pos $3 $5))))]
+                       (append (ConstClassDcls-list $1) (list (ConstClassDcl $1-start-pos $5-end-pos #f #f $3 $5))))]
       [(empty_documentation class_constant_visibility CONST IDENT ASSIGN expr)
        (ConstClassDcls $1-start-pos $6-end-pos
                        (list (ConstClassDcl $1-start-pos $6-end-pos $1 $2 $4 $6)))])
